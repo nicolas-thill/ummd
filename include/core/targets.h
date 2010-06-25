@@ -36,4 +36,8 @@ struct my_core_target {
 extern void my_core_target_register(my_core_t *core, my_core_target_t *target);
 extern void my_core_target_register_all(my_core_t *core);
 
+#ifdef MY_DEBUGGING
+extern void my_core_target_dump_all(my_core_t *core);
+#endif
+
 #endif /* __MY_CORE_TARGETS_H */

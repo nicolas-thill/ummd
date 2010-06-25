@@ -39,6 +39,7 @@ void my_control_register(my_core_t *core, my_control_impl_t *control)
 
 void my_control_register_all(my_core_t *core)
 {
+	MY_CONTROL_REGISTER(core, fifo);
 	MY_CONTROL_REGISTER(core, osc);
 /*
 	MY_CONTROL_REGISTER(core, http);

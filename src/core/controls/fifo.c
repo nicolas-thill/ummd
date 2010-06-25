@@ -20,45 +20,12 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_CONTROLS_H
-#define __MY_CONTROLS_H
+#include "core/controls.h"
 
-#include "autoconf.h"
+#include "util/list.h"
 
-#include "core.h"
-
-typedef enum {
-	MY_CONTROL_FIFO,
-	MY_CONTROL_OSC,
-/*
-	MY_CONTROL_HTTP,
-	MY_CONTROL_SOCK,
-*/
-} my_control_id_t;
-
-typedef struct my_control_conf my_control_conf_t;
-typedef struct my_control_impl my_control_impl_t;
-
-struct my_control_conf {
-	int index;
-	char *name;
-	char *desc;
-	char *type;
-	char *url;
+my_control_impl_t my_control_fifo = {
+	.id = MY_CONTROL_FIFO,
+	.name = "fifo",
+	.desc = "FIFO (named pipe) control interface",
 };
-
-struct my_control_impl {
-	my_control_id_t id;
-	char *name;
-	char *desc;
-};
-
-
-extern void my_control_register(my_core_t *core, my_control_impl_t *control);
-extern void my_control_register_all(my_core_t *core);
-
-#ifdef MY_DEBUGGING
-extern void my_control_dump_all(my_core_t *core);
-#endif
-
-#endif /* __MY_CONTROLS_H */

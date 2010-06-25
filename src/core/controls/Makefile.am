@@ -12,4 +12,5 @@ libcontrols_la_LIBADD = \
 
 libcontrols_la_SOURCES = \
 	all.c \
+	fifo.c \
 	osc.c

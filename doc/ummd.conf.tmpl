@@ -1,0 +1,44 @@
+##
+ #  ummd ( Micro MultiMedia Daemon ) configuration file
+ ##
+
+#log = "syslog";
+#log-level = 3;
+#pid-file = "$MY_RUN_DIR/ummd.pid";
+
+controls = (
+	{ type = "osc"; url = "udp://127.0.0.1:7000/"; },
+	{ type = "http"; url = "http://127.0.0.1:8000/"; },
+	{ type = "sock"; url = "file:$MY_RUN_DIR/ummd.ctl"; }
+);
+
+filters = (
+	{ type = "delay"; arg="value=0.5"; }
+);
+
+sources = (
+	{ type = "client"; url = "file:/dev/dsp"; },
+	{ type = "client"; url = "udp://127.0.0.1:1001/"; },
+	{ type = "client"; url = "udp://224.1.1.1:1001/"; },
+	{ type = "server"; url = "udp://127.0.0.1:1002/"; }
+);
+
+targets = (
+	{ type = "client"; url = "file:/dev/dsp"; },
+	{ type = "client"; url = "udp://127.0.0.1:1002/"; },
+	{ type = "client"; url = "udp://224.1.1.1:1002/"; },
+	{ type = "server"; url = "udp://127.0.0.1:1001/"; }
+);
+
+wirings = (
+
+	/* connect source's output #0 to target's input #0 */
+	{ source = "source/0"; target = "target/0"; },
+
+	/* connect source's output #0 to filter's input #0 */
+	{ source = "source/0"; target = "filter/0"; },
+	/* connect filter's output #0 to target's input #0 */
+	{ source = "filter/0"; target = "target/0"; }
+	
+);
+

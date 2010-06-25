@@ -25,7 +25,7 @@
 #include "util/list.h"
 
 my_control_impl_t my_control_osc = {
-	.id = 1,
+	.id = MY_CONTROL_OSC,
 	.name = "osc",
 	.desc = "Open Sound Control (OSC) control interface",
 };

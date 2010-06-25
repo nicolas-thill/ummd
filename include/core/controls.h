@@ -27,6 +27,14 @@
 
 #include "core.h"
 
+typedef enum {
+	MY_CONTROL_OSC,
+/*
+	MY_CONTROL_HTTP,
+	MY_CONTROL_SOCK,
+*/
+} my_control_id_t;
+
 typedef struct my_control_conf my_control_conf_t;
 typedef struct my_control_impl my_control_impl_t;
 
@@ -39,7 +47,7 @@ struct my_control_conf {
 };
 
 struct my_control_impl {
-	int id;
+	my_control_id_t id;
 	char *name;
 	char *desc;
 };

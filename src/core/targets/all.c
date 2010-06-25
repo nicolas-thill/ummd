@@ -24,25 +24,25 @@
 
 #include "util/list.h"
 
-#define MY_CORE_TARGET_REGISTER(x) { \
+#define MY_CORE_TARGET_REGISTER(c,x) { \
 	extern my_core_target_t my_core_target_##x; \
-	my_core_target_register(&my_core_target_##x); \
+	my_core_target_register((c), &my_core_target_##x); \
 }
 
 static my_list_t my_core_targets;
 
-void my_core_target_register(my_core_target_t *my_core_target)
+void my_core_target_register(my_core_t *core, my_core_target_t *target)
 {
-	my_list_queue(&my_core_targets, my_core_target);
+	my_list_queue(core->targets, target);
 }
 
-void my_core_target_register_all(void)
+void my_core_target_register_all(my_core_t *core)
 {
 /*
-	MY_CORE_TARGET_REGISTER(file);
-	MY_CORE_TARGET_REGISTER(sock);
-	MY_CORE_TARGET_REGISTER(net_http_client);
-	MY_CORE_TARGET_REGISTER(net_rtp_client);
-	MY_CORE_TARGET_REGISTER(net_udp_client);
+	MY_CORE_TARGET_REGISTER(core, file);
+	MY_CORE_TARGET_REGISTER(core, sock);
+	MY_CORE_TARGET_REGISTER(core, net_http_client);
+	MY_CORE_TARGET_REGISTER(core, net_rtp_client);
+	MY_CORE_TARGET_REGISTER(core, net_udp_client);
 */
 }

@@ -23,6 +23,8 @@
 #ifndef __MY_CORE_FILTERS_H
 #define __MY_CORE_FILTERS_H
 
+#include "core.h"
+
 typedef struct my_core_filter my_core_filter_t;
 
 struct my_core_filter {
@@ -31,7 +33,7 @@ struct my_core_filter {
 	char *desc;
 };
 
-extern void my_core_filter_register(my_core_filter_t *my_core_filter);
-extern void my_core_filter_register_all(void);
+extern void my_core_filter_register(my_core_t *core, my_core_filter_t *filter);
+extern void my_core_filter_register_all(my_core_t *core);
 
 #endif /* __MY_CORE_FILTERS_H */

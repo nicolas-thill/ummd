@@ -23,6 +23,8 @@
 #ifndef __MY_CORE_TARGETS_H
 #define __MY_CORE_TARGETS_H
 
+#include "core.h"
+
 typedef struct my_core_target my_core_target_t;
 
 struct my_core_target {
@@ -31,7 +33,7 @@ struct my_core_target {
 	char *desc;
 };
 
-extern void my_core_target_register(my_core_target_t *my_core_target);
-extern void my_core_target_register_all(void);
+extern void my_core_target_register(my_core_t *core, my_core_target_t *target);
+extern void my_core_target_register_all(my_core_t *core);
 
 #endif /* __MY_CORE_TARGETS_H */

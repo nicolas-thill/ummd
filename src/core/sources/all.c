@@ -24,25 +24,25 @@
 
 #include "util/list.h"
 
-#define MY_CORE_SOURCE_REGISTER(x) { \
+#define MY_CORE_SOURCE_REGISTER(c,x) { \
 	extern my_core_source_t my_core_source_##x; \
-	my_core_source_register(&my_core_source_##x); \
+	my_core_source_register((c), &my_core_source_##x); \
 }
 
 static my_list_t my_core_sources;
 
-void my_core_source_register(my_core_source_t *my_core_source)
+void my_core_source_register(my_core_t *core, my_core_source_t *source)
 {
-	my_list_queue(&my_core_sources, my_core_source);
+	my_list_queue(core->sources, source);
 }
 
-void my_core_source_register_all(void)
+void my_core_source_register_all(my_core_t *core)
 {
 /*
-	MY_CORE_SOURCE_REGISTER(file);
-	MY_CORE_SOURCE_REGISTER(sock);
-	MY_CORE_SOURCE_REGISTER(net_http_client);
-	MY_CORE_SOURCE_REGISTER(net_rtp_client);
-	MY_CORE_SOURCE_REGISTER(net_udp_client);
+	MY_CORE_SOURCE_REGISTER(core, file);
+	MY_CORE_SOURCE_REGISTER(core, sock);
+	MY_CORE_SOURCE_REGISTER(core, net_http_client);
+	MY_CORE_SOURCE_REGISTER(core, net_rtp_client);
+	MY_CORE_SOURCE_REGISTER(core, net_udp_client);
 */
 }

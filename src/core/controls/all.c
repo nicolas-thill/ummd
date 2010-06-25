@@ -24,23 +24,21 @@
 
 #include "util/list.h"
 
-#define MY_CORE_CONTROL_REGISTER(x) { \
+#define MY_CORE_CONTROL_REGISTER(c,x) { \
 	extern my_core_control_t my_core_control_##x; \
-	my_core_control_register(&my_core_control_##x); \
+	my_core_control_register((c), &my_core_control_##x); \
 }
 
-static my_list_t my_core_controls;
-
-void my_core_control_register(my_core_control_t *my_core_control)
+void my_core_control_register(my_core_t *core, my_core_control_t *control)
 {
-	my_list_queue(&my_core_controls, my_core_control);
+	my_list_queue(core->controls, control);
 }
 
-void my_core_control_register_all(void)
+void my_core_control_register_all(my_core_t *core)
 {
 /*
-	MY_CORE_CONTROL_REGISTER(http);
-	MY_CORE_CONTROL_REGISTER(osc);
-	MY_CORE_CONTROL_REGISTER(sock);
+	MY_CORE_CONTROL_REGISTER(core, http);
+	MY_CORE_CONTROL_REGISTER(core, osc);
+	MY_CORE_CONTROL_REGISTER(core, sock);
 */
 }

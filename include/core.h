@@ -31,6 +31,10 @@
 
 typedef struct my_core my_core_t;
 struct my_core {
+	my_list_t *controls;
+	my_list_t *filters;
+	my_list_t *sources;
+	my_list_t *targets;
 	struct event_base *evb;
 };
 

@@ -23,6 +23,8 @@
 #ifndef __MY_CORE_CONTROLS_H
 #define __MY_CORE_CONTROLS_H
 
+#include "core.h"
+
 typedef struct my_core_control my_core_control_t;
 
 struct my_core_control {
@@ -31,7 +33,7 @@ struct my_core_control {
 	char *desc;
 };
 
-extern void my_core_control_register(my_core_control_t *my_core_control);
-extern void my_core_control_register_all(void);
+extern void my_core_control_register(my_core_t *core, my_core_control_t *control);
+extern void my_core_control_register_all(my_core_t *core);
 
 #endif /* __MY_CORE_CONTROLS_H */

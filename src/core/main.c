@@ -37,10 +37,34 @@
 void my_core_init(my_core_t *core, my_conf_t *conf)
 {
 	my_mem_zero(core, sizeof(*core));
+	
+	core->controls = my_list_create();
+	if (core->controls == NULL) {
+		MY_ERROR("core: error creating control list (%s)" , strerror(errno));
+		exit(1);
+	}
 
-	my_core_control_register_all();
-	my_core_filter_register_all();
-	my_core_source_register_all();
-	my_core_target_register_all();
+	core->filters = my_list_create();
+	if (core->filters == NULL) {
+		MY_ERROR("core: error creating filter list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	core->sources = my_list_create();
+	if (core->sources == NULL) {
+		MY_ERROR("core: error creating source list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	core->targets = my_list_create();
+	if (core->targets == NULL) {
+		MY_ERROR("core: error creating target list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	my_core_control_register_all(core);
+	my_core_filter_register_all(core);
+	my_core_source_register_all(core);
+	my_core_target_register_all(core);
 }
 

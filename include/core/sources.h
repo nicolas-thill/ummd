@@ -23,6 +23,8 @@
 #ifndef __MY_CORE_SOURCES_H
 #define __MY_CORE_SOURCES_H
 
+#include "core.h"
+
 typedef struct my_core_source my_core_source_t;
 
 struct my_core_source {
@@ -31,7 +33,7 @@ struct my_core_source {
 	char *desc;
 };
 
-extern void my_core_source_register(my_core_source_t *my_core_source);
-extern void my_core_source_register_all(void);
+extern void my_core_source_register(my_core_t *core, my_core_source_t *source);
+extern void my_core_source_register_all(my_core_t *core);
 
 #endif /* __MY_CORE_SOURCES_H */

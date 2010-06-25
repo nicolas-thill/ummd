@@ -24,21 +24,19 @@
 
 #include "util/list.h"
 
-#define MY_CORE_FILTER_REGISTER(x) { \
+#define MY_CORE_FILTER_REGISTER(c,x) { \
 	extern my_core_filter_t my_core_filter_##x; \
-	my_core_filter_register(&my_core_filter_##x); \
+	my_core_filter_register((c), &my_core_filter_##x); \
 }
 
-static my_list_t my_core_filters;
-
-void my_core_filter_register(my_core_filter_t *my_core_filter)
+void my_core_filter_register(my_core_t *core, my_core_filter_t *filter)
 {
-	my_list_queue(&my_core_filters, my_core_filter);
+	my_list_queue(core->filters, filter);
 }
 
-void my_core_filter_register_all(void)
+void my_core_filter_register_all(my_core_t *core)
 {
 /*
-	MY_CORE_FILTER_REGISTER(delay);
+	MY_CORE_FILTER_REGISTER(core, delay);
 */
 }

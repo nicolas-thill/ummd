@@ -36,4 +36,8 @@ struct my_core_filter {
 extern void my_core_filter_register(my_core_t *core, my_core_filter_t *filter);
 extern void my_core_filter_register_all(my_core_t *core);
 
+#ifdef MY_DEBUGGING
+extern void my_core_filter_dump_all(my_core_t *core);
+#endif
+
 #endif /* __MY_CORE_FILTERS_H */

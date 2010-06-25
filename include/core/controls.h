@@ -23,6 +23,8 @@
 #ifndef __MY_CORE_CONTROLS_H
 #define __MY_CORE_CONTROLS_H
 
+#include "autoconf.h"
+
 #include "core.h"
 
 typedef struct my_core_control my_core_control_t;
@@ -35,5 +37,9 @@ struct my_core_control {
 
 extern void my_core_control_register(my_core_t *core, my_core_control_t *control);
 extern void my_core_control_register_all(my_core_t *core);
+
+#ifdef MY_DEBUGGING
+extern void my_core_control_dump_all(my_core_t *core);
+#endif
 
 #endif /* __MY_CORE_CONTROLS_H */

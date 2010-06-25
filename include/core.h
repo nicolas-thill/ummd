@@ -25,6 +25,8 @@
 
 #include <event.h>
 
+#include "autoconf.h"
+
 #include "conf.h"
 
 #include "util/list.h"
@@ -39,5 +41,9 @@ struct my_core {
 };
 
 extern void my_core_init(my_core_t *core, my_conf_t *conf);
+
+#ifdef MY_DEBUGGING
+extern void my_core_dump(my_core_t *core);
+#endif
 
 #endif /* __MY_CORE_H */

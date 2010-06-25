@@ -151,6 +151,10 @@ static void my_startup(int argc, char *argv[])
 
 	my_core_init(core, conf);
 
+#ifdef MY_DEBUGGING
+	my_core_dump(core);
+#endif
+
 	if (my_log_open(conf->log_file, conf->log_level)) {
 		exit(1);
 	}

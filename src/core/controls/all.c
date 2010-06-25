@@ -20,9 +20,12 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <stdlib.h>
+
 #include "core/controls.h"
 
 #include "util/list.h"
+#include "util/log.h"
 
 #define MY_CORE_CONTROL_REGISTER(c,x) { \
 	extern my_core_control_t my_core_control_##x; \
@@ -42,3 +45,29 @@ void my_core_control_register_all(my_core_t *core)
 	MY_CORE_CONTROL_REGISTER(core, sock);
 */
 }
+
+#ifdef MY_DEBUGGING
+
+static int my_core_control_dump(void *data, void *user, int flags)
+{
+	my_core_control_t *control = (my_core_control_t *)data;
+
+	MY_DEBUG("\t{");
+	MY_DEBUG("\t\tname=\"%s\";", control->name);
+	MY_DEBUG("\t\tdescription=\"%s\";", control->desc);
+	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
+
+	return 0;
+}
+
+
+void my_core_control_dump_all(my_core_t *core)
+{
+	MY_DEBUG("# registered control interfaces");
+	MY_DEBUG("controls = (");
+	my_list_iter(core->controls, my_core_control_dump, NULL);
+	MY_DEBUG(");");
+
+}
+
+#endif /* MY_DEBUGGING */

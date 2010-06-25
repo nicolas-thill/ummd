@@ -27,32 +27,32 @@
 #include "util/list.h"
 #include "util/log.h"
 
-#define MY_CORE_TARGET_REGISTER(c,x) { \
-	extern my_core_target_t my_core_target_##x; \
-	my_core_target_register((c), &my_core_target_##x); \
+#define MY_TARGET_REGISTER(c,x) { \
+	extern my_target_impl_t my_target_##x; \
+	my_target_register((c), &my_target_##x); \
 }
 
-void my_core_target_register(my_core_t *core, my_core_target_t *target)
+void my_target_register(my_core_t *core, my_target_impl_t *target)
 {
 	my_list_queue(core->targets, target);
 }
 
-void my_core_target_register_all(my_core_t *core)
+void my_target_register_all(my_core_t *core)
 {
 /*
-	MY_CORE_TARGET_REGISTER(core, file);
-	MY_CORE_TARGET_REGISTER(core, sock);
-	MY_CORE_TARGET_REGISTER(core, net_http_client);
-	MY_CORE_TARGET_REGISTER(core, net_rtp_client);
-	MY_CORE_TARGET_REGISTER(core, net_udp_client);
+	MY_TARGET_REGISTER(core, file);
+	MY_TARGET_REGISTER(core, sock);
+	MY_TARGET_REGISTER(core, net_http_client);
+	MY_TARGET_REGISTER(core, net_rtp_client);
+	MY_TARGET_REGISTER(core, net_udp_client);
 */
 }
 
 #ifdef MY_DEBUGGING
 
-static int my_core_target_dump(void *data, void *user, int flags)
+static int my_target_dump(void *data, void *user, int flags)
 {
-	my_core_target_t *target = (my_core_target_t *)data;
+	my_target_impl_t *target = (my_target_impl_t *)data;
 
 	MY_DEBUG("\t{");
 	MY_DEBUG("\t\tname=\"%s\";", target->name);
@@ -62,11 +62,11 @@ static int my_core_target_dump(void *data, void *user, int flags)
 	return 0;
 }
 
-void my_core_target_dump_all(my_core_t *core)
+void my_target_dump_all(my_core_t *core)
 {
 	MY_DEBUG("# registered targets");
 	MY_DEBUG("targets = (");
-	my_list_iter(core->targets, my_core_target_dump, NULL);
+	my_list_iter(core->targets, my_target_dump, NULL);
 	MY_DEBUG(");");
 
 }

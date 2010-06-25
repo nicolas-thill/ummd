@@ -20,26 +20,36 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_CORE_CONTROLS_H
-#define __MY_CORE_CONTROLS_H
+#ifndef __MY_CONTROLS_H
+#define __MY_CONTROLS_H
 
 #include "autoconf.h"
 
 #include "core.h"
 
-typedef struct my_core_control my_core_control_t;
+typedef struct my_control_conf my_control_conf_t;
+typedef struct my_control_impl my_control_impl_t;
 
-struct my_core_control {
+struct my_control_conf {
+	int index;
+	char *name;
+	char *desc;
+	char *type;
+	char *url;
+};
+
+struct my_control_impl {
 	int id;
 	char *name;
 	char *desc;
 };
 
-extern void my_core_control_register(my_core_t *core, my_core_control_t *control);
-extern void my_core_control_register_all(my_core_t *core);
+
+extern void my_control_register(my_core_t *core, my_control_impl_t *control);
+extern void my_control_register_all(my_core_t *core);
 
 #ifdef MY_DEBUGGING
-extern void my_core_control_dump_all(my_core_t *core);
+extern void my_control_dump_all(my_core_t *core);
 #endif
 
-#endif /* __MY_CORE_CONTROLS_H */
+#endif /* __MY_CONTROLS_H */

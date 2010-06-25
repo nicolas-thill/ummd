@@ -20,24 +20,36 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_CORE_SOURCES_H
-#define __MY_CORE_SOURCES_H
+#ifndef __MY_SOURCES_H
+#define __MY_SOURCES_H
+
+#include "autoconf.h"
 
 #include "core.h"
 
-typedef struct my_core_source my_core_source_t;
+typedef struct my_source_conf my_source_conf_t;
+typedef struct my_source_impl my_source_impl_t;
 
-struct my_core_source {
+struct my_source_conf {
+	int index;
+	char *name;
+	char *desc;
+	char *type;
+	char *url;
+};
+
+struct my_source_impl {
 	int id;
 	char *name;
 	char *desc;
 };
 
-extern void my_core_source_register(my_core_t *core, my_core_source_t *source);
-extern void my_core_source_register_all(my_core_t *core);
+
+extern void my_source_register(my_core_t *core, my_source_impl_t *source);
+extern void my_source_register_all(my_core_t *core);
 
 #ifdef MY_DEBUGGING
-extern void my_core_source_dump_all(my_core_t *core);
+extern void my_source_dump_all(my_core_t *core);
 #endif
 
-#endif /* __MY_CORE_SOURCES_H */
+#endif /* __MY_SOURCES_H */

@@ -20,24 +20,36 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_CORE_FILTERS_H
-#define __MY_CORE_FILTERS_H
+#ifndef __MY_FILTERS_H
+#define __MY_FILTERS_H
+
+#include "autoconf.h"
 
 #include "core.h"
 
-typedef struct my_core_filter my_core_filter_t;
+typedef struct my_filter_conf my_filter_conf_t;
+typedef struct my_filter_impl my_filter_impl_t;
 
-struct my_core_filter {
+struct my_filter_conf {
+	int index;
+	char *name;
+	char *desc;
+	char *type;
+	char *arg;
+};
+
+struct my_filter_impl {
 	int id;
 	char *name;
 	char *desc;
 };
 
-extern void my_core_filter_register(my_core_t *core, my_core_filter_t *filter);
-extern void my_core_filter_register_all(my_core_t *core);
+
+extern void my_filter_register(my_core_t *core, my_filter_impl_t *filter);
+extern void my_filter_register_all(my_core_t *core);
 
 #ifdef MY_DEBUGGING
-extern void my_core_filter_dump_all(my_core_t *core);
+extern void my_filter_dump_all(my_core_t *core);
 #endif
 
-#endif /* __MY_CORE_FILTERS_H */
+#endif /* __MY_FILTERS_H */

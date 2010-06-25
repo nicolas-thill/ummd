@@ -27,32 +27,32 @@
 #include "util/list.h"
 #include "util/log.h"
 
-#define MY_CORE_SOURCE_REGISTER(c,x) { \
-	extern my_core_source_t my_core_source_##x; \
-	my_core_source_register((c), &my_core_source_##x); \
+#define MY_SOURCE_REGISTER(c,x) { \
+	extern my_source_impl_t my_source_##x; \
+	my_source_register((c), &my_source_##x); \
 }
 
-void my_core_source_register(my_core_t *core, my_core_source_t *source)
+void my_source_register(my_core_t *core, my_source_impl_t *source)
 {
 	my_list_queue(core->sources, source);
 }
 
-void my_core_source_register_all(my_core_t *core)
+void my_source_register_all(my_core_t *core)
 {
 /*
-	MY_CORE_SOURCE_REGISTER(core, file);
-	MY_CORE_SOURCE_REGISTER(core, sock);
-	MY_CORE_SOURCE_REGISTER(core, net_http_client);
-	MY_CORE_SOURCE_REGISTER(core, net_rtp_client);
-	MY_CORE_SOURCE_REGISTER(core, net_udp_client);
+	MY_SOURCE_REGISTER(core, file);
+	MY_SOURCE_REGISTER(core, sock);
+	MY_SOURCE_REGISTER(core, net_http_client);
+	MY_SOURCE_REGISTER(core, net_rtp_client);
+	MY_SOURCE_REGISTER(core, net_udp_client);
 */
 }
 
 #ifdef MY_DEBUGGING
 
-static int my_core_source_dump(void *data, void *user, int flags)
+static int my_source_dump(void *data, void *user, int flags)
 {
-	my_core_source_t *source = (my_core_source_t *)data;
+	my_source_impl_t *source = (my_source_impl_t *)data;
 
 	MY_DEBUG("\t{");
 	MY_DEBUG("\t\tname=\"%s\";", source->name);
@@ -62,11 +62,11 @@ static int my_core_source_dump(void *data, void *user, int flags)
 	return 0;
 }
 
-void my_core_source_dump_all(my_core_t *core)
+void my_source_dump_all(my_core_t *core)
 {
 	MY_DEBUG("# registered sources");
 	MY_DEBUG("sources = (");
-	my_list_iter(core->sources, my_core_source_dump, NULL);
+	my_list_iter(core->sources, my_source_dump, NULL);
 	MY_DEBUG(");");
 
 }

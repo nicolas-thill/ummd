@@ -24,7 +24,7 @@
 
 #include "util/list.h"
 
-my_core_filter_t my_core_filter_delay = {
+my_filter_impl_t my_filter_delay = {
 	.id = 1,
 	.name = "delay",
 	.desc = "Delay filter",

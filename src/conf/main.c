@@ -26,6 +26,13 @@
 
 #include "conf.h"
 
+#include "core.h"
+#include "core/controls.h"
+#include "core/filters.h"
+#include "core/sources.h"
+#include "core/targets.h"
+#include "core/wirings.h"
+
 #include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
@@ -68,9 +75,9 @@ void my_conf_init(my_conf_t *conf)
 
 #ifdef MY_DEBUGGING
 
-static int my_conf_dump_controls(void *data, void *user, int flags)
+static int my_conf_dump_control(void *data, void *user, int flags)
 {
-	my_conf_control_t *control = (my_conf_control_t *)data;
+	my_control_conf_t *control = (my_control_conf_t *)data;
 
 	MY_DEBUG("\tcontrol[%d] = {", control->index);
 	MY_DEBUG("\t\tname=\"%s\";", control->name);
@@ -82,9 +89,9 @@ static int my_conf_dump_controls(void *data, void *user, int flags)
 	return 0;
 }
 
-static int my_conf_dump_filters(void *data, void *user, int flags)
+static int my_conf_dump_filter(void *data, void *user, int flags)
 {
-	my_conf_filter_t *filter = (my_conf_filter_t *)data;
+	my_filter_conf_t *filter = (my_filter_conf_t *)data;
 
 	MY_DEBUG("\tfilter[%d] = {", filter->index);
 	MY_DEBUG("\t\tname=\"%s\";", filter->name);
@@ -96,9 +103,9 @@ static int my_conf_dump_filters(void *data, void *user, int flags)
 	return 0;
 }
 
-static int my_conf_dump_sources(void *data, void *user, int flags)
+static int my_conf_dump_source(void *data, void *user, int flags)
 {
-	my_conf_source_t *source = (my_conf_source_t *)data;
+	my_source_conf_t *source = (my_source_conf_t *)data;
 
 	MY_DEBUG("\tsource[%d] = {", source->index);
 	MY_DEBUG("\t\tname=\"%s\";", source->name);
@@ -110,9 +117,9 @@ static int my_conf_dump_sources(void *data, void *user, int flags)
 	return 0;
 }
 
-static int my_conf_dump_targets(void *data, void *user, int flags)
+static int my_conf_dump_target(void *data, void *user, int flags)
 {
-	my_conf_target_t *target= (my_conf_target_t *)data;
+	my_target_conf_t *target= (my_target_conf_t *)data;
 
 	MY_DEBUG("\ttarget[%d] = {", target->index);
 	MY_DEBUG("\t\tname=\"%s\";", target->name);
@@ -124,9 +131,9 @@ static int my_conf_dump_targets(void *data, void *user, int flags)
 	return 0;
 }
 
-static int my_conf_dump_wirings(void *data, void *user, int flags)
+static int my_conf_dump_wiring(void *data, void *user, int flags)
 {
-	my_conf_wiring_t *wiring = (my_conf_wiring_t *)data;
+	my_wiring_conf_t *wiring = (my_wiring_conf_t *)data;
 
 	MY_DEBUG("\twiring[%d] = {", wiring->index);
 	MY_DEBUG("\t\tname=\"%s\";", wiring->name);
@@ -146,23 +153,23 @@ void my_conf_dump(my_conf_t *conf)
 	MY_DEBUG("pid-file = \"%s\";", conf->pid_file);
 
 	MY_DEBUG("controls = (");
-	my_list_iter(conf->controls, my_conf_dump_controls, NULL);
+	my_list_iter(conf->controls, my_conf_dump_control, NULL);
 	MY_DEBUG(");");
 
 	MY_DEBUG("filters = (");
-	my_list_iter(conf->filters, my_conf_dump_filters, NULL);
+	my_list_iter(conf->filters, my_conf_dump_filter, NULL);
 	MY_DEBUG(");");
 
 	MY_DEBUG("sources = (");
-	my_list_iter(conf->sources, my_conf_dump_sources, NULL);
+	my_list_iter(conf->sources, my_conf_dump_source, NULL);
 	MY_DEBUG(");");
 
 	MY_DEBUG("targets = (");
-	my_list_iter(conf->targets, my_conf_dump_targets, NULL);
+	my_list_iter(conf->targets, my_conf_dump_target, NULL);
 	MY_DEBUG(");");
 
 	MY_DEBUG("wirings = (");
-	my_list_iter(conf->wirings, my_conf_dump_wirings, NULL);
+	my_list_iter(conf->wirings, my_conf_dump_wiring, NULL);
 	MY_DEBUG(");");
 }
 

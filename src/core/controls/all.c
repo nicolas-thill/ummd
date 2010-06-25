@@ -27,30 +27,30 @@
 #include "util/list.h"
 #include "util/log.h"
 
-#define MY_CORE_CONTROL_REGISTER(c,x) { \
-	extern my_core_control_t my_core_control_##x; \
-	my_core_control_register((c), &my_core_control_##x); \
+#define MY_CONTROL_REGISTER(c,x) { \
+	extern my_control_impl_t my_control_##x; \
+	my_control_register((c), &my_control_##x); \
 }
 
-void my_core_control_register(my_core_t *core, my_core_control_t *control)
+void my_control_register(my_core_t *core, my_control_impl_t *control)
 {
 	my_list_queue(core->controls, control);
 }
 
-void my_core_control_register_all(my_core_t *core)
+void my_control_register_all(my_core_t *core)
 {
-	MY_CORE_CONTROL_REGISTER(core, osc);
+	MY_CONTROL_REGISTER(core, osc);
 /*
-	MY_CORE_CONTROL_REGISTER(core, http);
-	MY_CORE_CONTROL_REGISTER(core, sock);
+	MY_CONTROL_REGISTER(core, http);
+	MY_CONTROL_REGISTER(core, sock);
 */
 }
 
 #ifdef MY_DEBUGGING
 
-static int my_core_control_dump(void *data, void *user, int flags)
+static int my_control_dump(void *data, void *user, int flags)
 {
-	my_core_control_t *control = (my_core_control_t *)data;
+	my_control_impl_t *control = (my_control_impl_t *)data;
 
 	MY_DEBUG("\t{");
 	MY_DEBUG("\t\tname=\"%s\";", control->name);
@@ -61,11 +61,11 @@ static int my_core_control_dump(void *data, void *user, int flags)
 }
 
 
-void my_core_control_dump_all(my_core_t *core)
+void my_control_dump_all(my_core_t *core)
 {
 	MY_DEBUG("# registered control interfaces");
 	MY_DEBUG("controls = (");
-	my_list_iter(core->controls, my_core_control_dump, NULL);
+	my_list_iter(core->controls, my_control_dump, NULL);
 	MY_DEBUG(");");
 
 }

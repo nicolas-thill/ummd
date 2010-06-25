@@ -20,33 +20,17 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_CONF_H
-#define __MY_CONF_H
+#ifndef __MY_WIRINGS_H
+#define __MY_WIRINGS_H
 
-#include "autoconf.h"
+typedef struct my_wiring_conf my_wiring_conf_t;
 
-#include "util/list.h"
-
-typedef struct my_conf my_conf_t;
-
-struct my_conf {
-	char *cfg_file;
-	char *log_file;
-	char *pid_file;
-	int log_level;
-	my_list_t *controls;
-	my_list_t *filters;
-	my_list_t *sources;
-	my_list_t *targets;
-	my_list_t *wirings;
+struct my_wiring_conf {
+	int index;
+	char *name;
+	char *desc;
+	char *source;
+	char *target;
 };
 
-extern void my_conf_init(my_conf_t *conf);
-
-extern void my_conf_parse(my_conf_t *conf);
-
-#ifdef MY_DEBUGGING
-extern void my_conf_dump(my_conf_t *conf);
-#endif
-
-#endif /* __MY_CONF_H */
+#endif /* __MY_WIRINGS_H */

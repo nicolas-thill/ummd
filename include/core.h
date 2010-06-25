@@ -32,6 +32,7 @@
 #include "util/list.h"
 
 typedef struct my_core my_core_t;
+
 struct my_core {
 	my_list_t *controls;
 	my_list_t *filters;

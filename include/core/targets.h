@@ -20,24 +20,36 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_CORE_TARGETS_H
-#define __MY_CORE_TARGETS_H
+#ifndef __MY_TARGETS_H
+#define __MY_TARGETS_H
+
+#include "autoconf.h"
 
 #include "core.h"
 
-typedef struct my_core_target my_core_target_t;
+typedef struct my_target_conf my_target_conf_t;
+typedef struct my_target_impl my_target_impl_t;
 
-struct my_core_target {
+struct my_target_conf {
+	int index;
+	char *name;
+	char *desc;
+	char *type;
+	char *url;
+};
+
+struct my_target_impl {
 	int id;
 	char *name;
 	char *desc;
 };
 
-extern void my_core_target_register(my_core_t *core, my_core_target_t *target);
-extern void my_core_target_register_all(my_core_t *core);
+
+extern void my_target_register(my_core_t *core, my_target_impl_t *target);
+extern void my_target_register_all(my_core_t *core);
 
 #ifdef MY_DEBUGGING
-extern void my_core_target_dump_all(my_core_t *core);
+extern void my_target_dump_all(my_core_t *core);
 #endif
 
-#endif /* __MY_CORE_TARGETS_H */
+#endif /* __MY_TARGETS_H */

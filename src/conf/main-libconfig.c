@@ -28,6 +28,13 @@
 
 #include "conf.h"
 
+#include "core.h"
+#include "core/controls.h"
+#include "core/filters.h"
+#include "core/sources.h"
+#include "core/targets.h"
+#include "core/wirings.h"
+
 #include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
@@ -46,7 +53,7 @@ static void my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 	int i, n;
 	config_setting_t *item;
 	const char *str_value;
-	my_conf_control_t *control;
+	my_control_conf_t *control;
 
 	n = config_setting_length(list);
 	for (i = 0; i < n; i++) {
@@ -89,7 +96,7 @@ static void my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 	int i, n;
 	config_setting_t *item;
 	const char *str_value;
-	my_conf_filter_t *filter;
+	my_filter_conf_t *filter;
 	
 
 	n = config_setting_length(list);
@@ -133,7 +140,7 @@ static void my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 	int i, n;
 	config_setting_t *item;
 	const char *str_value;
-	my_conf_source_t *source;
+	my_source_conf_t *source;
 
 	n = config_setting_length(list);
 	for (i = 0; i < n; i++) {
@@ -176,7 +183,7 @@ static void my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 	int i, n;
 	config_setting_t *item;
 	const char *str_value;
-	my_conf_target_t *target;
+	my_target_conf_t *target;
 	
 
 	n = config_setting_length(list);
@@ -220,7 +227,7 @@ static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 	int i, n;
 	config_setting_t *item;
 	const char *str_value;
-	my_conf_wiring_t *wiring;
+	my_wiring_conf_t *wiring;
 	
 
 	n = config_setting_length(list);

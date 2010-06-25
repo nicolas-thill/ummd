@@ -23,6 +23,8 @@
 #ifndef __MY_CONF_H
 #define __MY_CONF_H
 
+#include "autoconf.h"
+
 #include "util/list.h"
 
 typedef struct my_conf_control my_conf_control_t;

@@ -1,3 +1,19 @@
 ##
  #  ummd ( Micro MultiMedia Daemon )
  ##
+
+Requirements
+============
+
+ - FFmpeg
+   http://www.ffmpeg.org/
+   
+ - libconfig
+   http://www.hyperrealm.com/libconfig/
+   
+ - libevent
+   http://monkey.org/~provos/libevent/
+   
+ - liblo
+   http://liblo.sourceforge.net/
+

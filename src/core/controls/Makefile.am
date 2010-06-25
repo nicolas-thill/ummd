@@ -11,4 +11,5 @@ libcontrols_la_LIBADD = \
 	@LIBLO_LIBS@
 
 libcontrols_la_SOURCES = \
-	all.c
+	all.c \
+	osc.c

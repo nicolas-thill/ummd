@@ -49,7 +49,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libcontrols_la_DEPENDENCIES =
-am_libcontrols_la_OBJECTS = libcontrols_la-all.lo
+am_libcontrols_la_OBJECTS = libcontrols_la-all.lo \
+	libcontrols_la-osc.lo
 libcontrols_la_OBJECTS = $(am_libcontrols_la_OBJECTS)
 libcontrols_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libcontrols_la_CFLAGS) \
@@ -212,7 +213,8 @@ libcontrols_la_LIBADD = \
 	@LIBLO_LIBS@
 
 libcontrols_la_SOURCES = \
-	all.c
+	all.c \
+	osc.c
 
 all: all-am
 
@@ -267,6 +269,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcontrols_la-all.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcontrols_la-osc.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -295,6 +298,13 @@ libcontrols_la-all.lo: all.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='all.c' object='libcontrols_la-all.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcontrols_la_CFLAGS) $(CFLAGS) -c -o libcontrols_la-all.lo `test -f 'all.c' || echo '$(srcdir)/'`all.c
+
+libcontrols_la-osc.lo: osc.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcontrols_la_CFLAGS) $(CFLAGS) -MT libcontrols_la-osc.lo -MD -MP -MF $(DEPDIR)/libcontrols_la-osc.Tpo -c -o libcontrols_la-osc.lo `test -f 'osc.c' || echo '$(srcdir)/'`osc.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libcontrols_la-osc.Tpo $(DEPDIR)/libcontrols_la-osc.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='osc.c' object='libcontrols_la-osc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcontrols_la_CFLAGS) $(CFLAGS) -c -o libcontrols_la-osc.lo `test -f 'osc.c' || echo '$(srcdir)/'`osc.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

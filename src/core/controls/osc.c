@@ -24,21 +24,8 @@
 
 #include "util/list.h"
 
-#define MY_CORE_CONTROL_REGISTER(c,x) { \
-	extern my_core_control_t my_core_control_##x; \
-	my_core_control_register((c), &my_core_control_##x); \
-}
-
-void my_core_control_register(my_core_t *core, my_core_control_t *control)
-{
-	my_list_queue(core->controls, control);
-}
-
-void my_core_control_register_all(my_core_t *core)
-{
-	MY_CORE_CONTROL_REGISTER(core, osc);
-/*
-	MY_CORE_CONTROL_REGISTER(core, http);
-	MY_CORE_CONTROL_REGISTER(core, sock);
-*/
-}
+my_core_control_t my_core_control_osc = {
+	.id = 1,
+	.name = "osc",
+	.desc = "Open Sound Control (OSC) control interface",
+};

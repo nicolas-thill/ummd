@@ -29,8 +29,6 @@
 	my_core_source_register((c), &my_core_source_##x); \
 }
 
-static my_list_t my_core_sources;
-
 void my_core_source_register(my_core_t *core, my_core_source_t *source)
 {
 	my_list_queue(core->sources, source);

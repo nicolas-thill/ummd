@@ -29,8 +29,6 @@
 	my_core_target_register((c), &my_core_target_##x); \
 }
 
-static my_list_t my_core_targets;
-
 void my_core_target_register(my_core_t *core, my_core_target_t *target)
 {
 	my_list_queue(core->targets, target);

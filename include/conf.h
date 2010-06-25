@@ -87,6 +87,8 @@ extern void my_conf_init(my_conf_t *conf);
 
 extern void my_conf_parse(my_conf_t *conf);
 
+#ifdef MY_DEBUGGING
 extern void my_conf_dump(my_conf_t *conf);
+#endif
 
 #endif /* __MY_CONF_H */

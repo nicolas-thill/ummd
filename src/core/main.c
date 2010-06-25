@@ -68,7 +68,12 @@ void my_core_init(my_core_t *core, my_conf_t *conf)
 	my_core_target_register_all(core);
 }
 
+
+#ifdef MY_DEBUGGING
+
 void my_core_dump(my_core_t *core)
 {
 	my_core_control_dump_all(core);
 }
+
+#endif /* MY_DEBUGGING */

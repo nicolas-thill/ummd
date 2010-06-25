@@ -39,9 +39,7 @@ void my_core_filter_register(my_core_t *core, my_core_filter_t *filter)
 
 void my_core_filter_register_all(my_core_t *core)
 {
-/*
 	MY_CORE_FILTER_REGISTER(core, delay);
-*/
 }
 
 #ifdef MY_DEBUGGING

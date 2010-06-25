@@ -75,6 +75,7 @@ void my_core_dump(my_core_t *core)
 {
 	my_core_control_dump_all(core);
 	my_core_filter_dump_all(core);
+	my_core_source_dump_all(core);
 }
 
 #endif /* MY_DEBUGGING */

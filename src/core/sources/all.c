@@ -20,9 +20,12 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <stdlib.h>
+
 #include "core/sources.h"
 
 #include "util/list.h"
+#include "util/log.h"
 
 #define MY_CORE_SOURCE_REGISTER(c,x) { \
 	extern my_core_source_t my_core_source_##x; \
@@ -44,3 +47,28 @@ void my_core_source_register_all(my_core_t *core)
 	MY_CORE_SOURCE_REGISTER(core, net_udp_client);
 */
 }
+
+#ifdef MY_DEBUGGING
+
+static int my_core_source_dump(void *data, void *user, int flags)
+{
+	my_core_source_t *source = (my_core_source_t *)data;
+
+	MY_DEBUG("\t{");
+	MY_DEBUG("\t\tname=\"%s\";", source->name);
+	MY_DEBUG("\t\tdescription=\"%s\";", source->desc);
+	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
+
+	return 0;
+}
+
+void my_core_source_dump_all(my_core_t *core)
+{
+	MY_DEBUG("# registered sources");
+	MY_DEBUG("sources = (");
+	my_list_iter(core->sources, my_core_source_dump, NULL);
+	MY_DEBUG(");");
+
+}
+
+#endif /* MY_DEBUGGING */

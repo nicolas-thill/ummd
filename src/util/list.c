@@ -163,3 +163,16 @@ int my_list_iter(my_list_t *list, my_list_iter_fn_t func, void *user)
 
 	return 0;
 }
+
+void my_list_purge(my_list_t *list, int flags)
+{
+	void *data;
+	
+	while (data = my_list_dequeue(list)) {
+		if (flags & MY_LIST_PURGE_FLAG_FREE_DATA) {
+			my_mem_free(data);
+		}
+	}
+}
+
+

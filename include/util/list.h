@@ -50,4 +50,8 @@ extern int my_list_iter(my_list_t *list, my_list_iter_fn_t func, void *user);
 extern void *my_list_dequeue(my_list_t *list);
 extern int my_list_enqueue(my_list_t *list, void *data);
 
+#define MY_LIST_PURGE_FLAG_FREE_DATA  0x0001
+
+extern void my_list_purge(my_list_t *list, int flags);
+
 #endif /* __MY_UTIL_LIST_H */

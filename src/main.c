@@ -183,8 +183,9 @@ int main(int argc, char *argv[])
 
 	my_log(MY_LOG_NOTICE, "started");
 
-	my_core = my_core_create(my_conf);
+	my_core = my_core_create();
 	if (my_core) {
+		my_core_init(my_core, my_conf);
 		my_install_sig_handlers();
 		my_core_loop(my_core);
 		my_core_destroy(my_core);

@@ -47,14 +47,9 @@ struct my_core_priv {
 #define MY_CORE(p) ((my_core_t *)p)
 #define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
 
-my_core_t *my_core_create(my_conf_t *conf)
+my_core_t *my_core_create(void)
 {
 	my_core_t *core;
-
-	my_control_register_all();
-	my_filter_register_all();
-	my_source_register_all();
-	my_target_register_all();
 
 	core = my_mem_alloc(sizeof(my_core_priv_t));
 	if (!core) {
@@ -86,8 +81,6 @@ my_core_t *my_core_create(my_conf_t *conf)
 		exit(1);
 	}
 
-	my_control_create_all(core, conf);
-
 	return core;
 }
 
@@ -101,6 +94,18 @@ void my_core_destroy(my_core_t *core)
 	my_list_destroy(core->targets);
 
 	my_mem_free(core);
+}
+
+int my_core_init(my_core_t *core, my_conf_t *conf)
+{
+	my_control_register_all();
+	my_filter_register_all();
+	my_source_register_all();
+	my_target_register_all();
+
+	my_control_create_all(core, conf);
+	
+	return 0;
 }
 
 void my_core_loop(my_core_t *core)

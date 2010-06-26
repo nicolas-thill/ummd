@@ -42,8 +42,6 @@ typedef struct my_control_impl my_control_impl_t;
 
 typedef my_control_t *(*my_control_create_func_t)(my_control_conf_t *conf);
 typedef void (*my_control_destroy_func_t)(my_control_t *control);
-typedef int (*my_control_open_func_t)(my_control_t *control);
-typedef int (*my_control_close_func_t)(my_control_t *control);
 
 #define MY_CONTROL(p) ((my_control_t *)(p))
 
@@ -67,8 +65,6 @@ struct my_control_impl {
 	char *desc;
 	my_control_create_func_t create;
 	my_control_destroy_func_t destroy;
-	my_control_open_func_t open;
-	my_control_close_func_t close;
 };
 
 

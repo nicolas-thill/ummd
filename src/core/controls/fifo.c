@@ -71,6 +71,13 @@ my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 		goto _error;
 	}
 
+	MY_DEBUG("core/control/fifo: opening fifo '%s'", control_priv->path);
+	control_priv->fd = open(control_priv->path, O_RDWR | O_NONBLOCK, 0);
+	if (control_priv->fd == -1) {
+		my_log(MY_LOG_ERROR, "core/control/fifo: error opening fifo '%s' (%s)", control_priv->path, strerror(errno));
+		return -1;
+	}
+
 	return (my_control_t *)control_priv;
 
 _error:
@@ -82,6 +89,12 @@ void my_control_fifo_destroy(my_control_t *control)
 {
 	my_control_priv_t *control_priv = (my_control_priv_t *)control;
 
+	MY_DEBUG("core/control/fifo: closing fifo '%s'", control_priv->path);
+	if (close(control_priv->fd) == -1) {
+		my_log(MY_LOG_ERROR, "core/control/fifo: error closing fifo '%s' (%s)", control_priv->path, strerror(errno));
+		return -1;
+	}
+
 	MY_DEBUG("core/control/fifo: removing fifo '%s'", control_priv->path);
 	if (unlink(control_priv->path) == -1) {
 		my_log(MY_LOG_ERROR, "core/control/fifo: error removing fifo '%s' (%s)", control_priv->path, strerror(errno));
@@ -90,38 +103,10 @@ void my_control_fifo_destroy(my_control_t *control)
 	my_mem_free(control_priv);
 }
 
-int my_control_fifo_open(my_control_t *control)
-{
-	my_control_priv_t *control_priv = (my_control_priv_t *)control;
-
-	MY_DEBUG("core/control/fifo: opening fifo '%s'", control_priv->path);
-	control_priv->fd = open(control_priv->path, O_RDWR | O_NONBLOCK, 0);
-	if (control_priv->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/control/fifo: error opening fifo '%s' (%s)", control_priv->path, strerror(errno));
-		return -1;
-	}
-
-	return 0;
-}
-
-int my_control_fifo_close(my_control_t *control)
-{
-	my_control_priv_t *control_priv = (my_control_priv_t *)control;
-
-	MY_DEBUG("core/control/fifo: closing fifo '%s'", control_priv->path);
-	if (close(control_priv->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/control/fifo: error closing fifo '%s' (%s)", control_priv->path, strerror(errno));
-		return -1;
-	}
-	return 0;
-}
-
 my_control_impl_t my_control_fifo = {
 	.id = MY_CONTROL_FIFO,
 	.name = "fifo",
 	.desc = "FIFO (named pipe) control interface",
 	.create = my_control_fifo_create,
 	.destroy = my_control_fifo_destroy,
-	.open = my_control_fifo_open,
-	.close = my_control_fifo_close,
 };

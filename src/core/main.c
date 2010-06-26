@@ -41,7 +41,7 @@ typedef struct my_core_priv my_core_priv_t;
 struct my_core_priv {
 	my_core_t base;
 	int running;
-	struct event_base *evb;
+	struct event_base *event_base;
 };
 
 #define MY_CORE(p) ((my_core_t *)p)
@@ -49,49 +49,62 @@ struct my_core_priv {
 
 my_core_t *my_core_create(void)
 {
-	my_core_t *core;
+	void *p;
 
-	core = my_mem_alloc(sizeof(my_core_priv_t));
-	if (!core) {
-		MY_ERROR("core: error creating data structure (%s)" , strerror(errno));
+	p = my_mem_alloc(sizeof(my_core_priv_t));
+	if (!p) {
+		MY_ERROR("core: error creating internal data (%s)" , strerror(errno));
 		goto _MY_ERR_alloc;
 	}
 	
-	core->controls = my_list_create();
-	if (core->controls == NULL) {
+	MY_CORE(p)->controls = my_list_create();
+	if (MY_CORE(p)->controls == NULL) {
 		MY_ERROR("core: error creating control list (%s)" , strerror(errno));
 		goto _MY_ERR_create_controls;
 	}
 
-	core->filters = my_list_create();
-	if (core->filters == NULL) {
+	MY_CORE(p)->filters = my_list_create();
+	if (MY_CORE(p)->filters == NULL) {
 		MY_ERROR("core: error creating filter list (%s)" , strerror(errno));
 		goto _MY_ERR_create_filters;
 	}
 
-	core->sources = my_list_create();
-	if (core->sources == NULL) {
+	MY_CORE(p)->sources = my_list_create();
+	if (MY_CORE(p)->sources == NULL) {
 		MY_ERROR("core: error creating source list (%s)" , strerror(errno));
 		goto _MY_ERR_create_sources;
 	}
 
-	core->targets = my_list_create();
-	if (core->targets == NULL) {
+	MY_CORE(p)->targets = my_list_create();
+	if (MY_CORE(p)->targets == NULL) {
 		MY_ERROR("core: error creating target list (%s)" , strerror(errno));
 		goto _MY_ERR_create_targets;
 	}
 
-	return core;
+	if (event_init() == NULL) {
+		MY_ERROR("core: error initializing event handling library");
+		goto _MY_ERR_event_init;
+	}
+	
+	MY_CORE_PRIV(p)->event_base = event_base_new();
+	if (MY_CORE_PRIV(p)->event_base == NULL) {
+		MY_ERROR("core: error initializing event handling library");
+		goto _MY_ERR_event_base_new;
+	}
+	
+	return MY_CORE(p);
 
-	my_list_destroy(core->targets);
+_MY_ERR_event_base_new:
+_MY_ERR_event_init:
+	my_list_destroy(MY_CORE(p)->targets);
 _MY_ERR_create_targets:
-	my_list_destroy(core->sources);
+	my_list_destroy(MY_CORE(p)->sources);
 _MY_ERR_create_sources:
-	my_list_destroy(core->filters);
+	my_list_destroy(MY_CORE(p)->filters);
 _MY_ERR_create_filters:
-	my_list_destroy(core->controls);
+	my_list_destroy(MY_CORE(p)->controls);
 _MY_ERR_create_controls:
-	my_mem_free(core);
+	my_mem_free(p);
 _MY_ERR_alloc:
 	return NULL;
 }
@@ -114,10 +127,15 @@ int my_core_init(my_core_t *core, my_conf_t *conf)
 	my_filter_register_all();
 	my_source_register_all();
 	my_target_register_all();
-
-	my_control_create_all(core, conf);
+	
+	if (my_control_create_all(core, conf) != 0) {
+		goto _MY_ERR_create_controls;
+	}
 	
 	return 0;
+
+_MY_ERR_create_controls:
+	return -1;
 }
 
 void my_core_loop(my_core_t *core)

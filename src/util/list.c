@@ -96,7 +96,7 @@ int my_list_queue(my_list_t *list, void *data)
 	return -1;
 }
 
-int my_list_iter(my_list_t *list, my_list_iter_func_t func, void *user)
+int my_list_iter(my_list_t *list, my_list_iter_fn_t func, void *user)
 {
 	my_node_t *node;
 	int flags;

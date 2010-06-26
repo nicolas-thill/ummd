@@ -32,9 +32,46 @@
 	my_control_register((c), &my_control_##x); \
 }
 
-void my_control_register(my_core_t *core, my_control_impl_t *control)
+static my_control_impl_t *my_control_find_impl(my_core_t *core, char *name)
 {
-	my_list_queue(core->controls, control);
+	my_control_impl_t *impl;
+	my_node_t *node;
+
+	for (node = core->controls->head; node; node = node->next) {
+		impl = (my_control_impl_t *)(node->data);
+		if (strcmp(impl->name, name) == 0) {
+			return impl;
+		}
+	}
+	return NULL;
+}
+
+my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
+{
+	my_control_t *control;
+	my_control_impl_t *impl;
+	
+	impl = my_control_find_impl(core, conf->type);
+	if (!impl) {
+		MY_ERROR("unknown control interface (%s)" , conf->type);
+		return NULL;
+	}
+	control = impl->create(conf);
+	if (!control) {
+		MY_ERROR("error creating control (%s)" , conf->name);
+		return NULL;
+	}
+
+	control->core = core;
+	control->conf = conf;
+	control->impl = impl;
+
+	return control;
+}
+
+void my_control_register(my_core_t *core, my_control_impl_t *impl)
+{
+	my_list_queue(core->controls, impl);
 }
 
 void my_control_register_all(my_core_t *core)
@@ -51,11 +88,11 @@ void my_control_register_all(my_core_t *core)
 
 static int my_control_dump(void *data, void *user, int flags)
 {
-	my_control_impl_t *control = (my_control_impl_t *)data;
+	my_control_impl_t *impl = (my_control_impl_t *)data;
 
 	MY_DEBUG("\t{");
-	MY_DEBUG("\t\tname=\"%s\";", control->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", control->desc);
+	MY_DEBUG("\t\tname=\"%s\";", impl->name);
+	MY_DEBUG("\t\tdescription=\"%s\";", impl->desc);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;

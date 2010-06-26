@@ -36,8 +36,20 @@ typedef enum {
 */
 } my_control_id_t;
 
+typedef struct my_control my_control_t;
 typedef struct my_control_conf my_control_conf_t;
 typedef struct my_control_impl my_control_impl_t;
+
+typedef my_control_t *(*my_control_create_func_t)(my_control_conf_t *conf);
+typedef void (*my_control_destroy_func_t)(my_control_t *control);
+typedef int (*my_control_open_func_t)(my_control_t *control);
+typedef int (*my_control_close_func_t)(my_control_t *control);
+
+struct my_control {
+	my_core_t *core;
+	my_control_conf_t *conf;
+	my_control_impl_t *impl;
+};
 
 struct my_control_conf {
 	int index;
@@ -51,10 +63,16 @@ struct my_control_impl {
 	my_control_id_t id;
 	char *name;
 	char *desc;
+	my_control_create_func_t create;
+	my_control_destroy_func_t destroy;
+	my_control_open_func_t open;
+	my_control_close_func_t close;
 };
 
 
-extern void my_control_register(my_core_t *core, my_control_impl_t *control);
+my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf);
+
+extern void my_control_register(my_core_t *core, my_control_impl_t *impl);
 extern void my_control_register_all(my_core_t *core);
 
 #ifdef MY_DEBUGGING

@@ -48,7 +48,7 @@ static char *my_conf_get_default_name(char *s, int n)
 	return strdup(buf);
 }
 
-static void my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
+static int my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 {
 	int i, n;
 	config_setting_t *item;
@@ -60,8 +60,8 @@ static void my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		control = my_mem_alloc(sizeof(*control));
 		if (control == NULL) {
-			MY_ERROR("conf: error creating control (%s)" , strerror(errno));
-			exit(1);
+			MY_ERROR("conf: error creating control #%d (%s)", i, strerror(errno));
+			goto _MY_ERR_alloc;
 		}
 
 		control->index = i;
@@ -85,13 +85,20 @@ static void my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_enqueue(conf->controls, control)) {
-			MY_ERROR("conf: error queuing control #d '%s'" , control->index, control->name);
-			exit(1);
+			MY_ERROR("conf: error queuing control #%d '%s'" , control->index, control->name);
+			goto _MY_ERR_queue;
 		}
 	}
+
+	return 0;
+
+_MY_ERR_queue:
+	my_mem_free(control);
+_MY_ERR_alloc:
+	return -1;
 }
 
-static void my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
+static int my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 {
 	int i, n;
 	config_setting_t *item;
@@ -104,8 +111,8 @@ static void my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		filter = my_mem_alloc(sizeof(*filter));
 		if (filter == NULL) {
-			MY_ERROR("conf: error creating filter (%s)" , strerror(errno));
-			exit(1);
+			MY_ERROR("conf: error creating filter #%d (%s)", i,strerror(errno));
+			goto _MY_ERR_alloc;
 		}
 
 		filter->index = i;
@@ -129,13 +136,20 @@ static void my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_enqueue(conf->filters, filter)) {
-			MY_ERROR("conf: error queuing filter #d '%s'" , filter->index, filter->name);
-			exit(1);
+			MY_ERROR("conf: error queuing filter #%d '%s'" , filter->index, filter->name);
+			goto _MY_ERR_queue;
 		}
 	}
+
+	return 0;
+
+_MY_ERR_queue:
+	my_mem_free(filter);
+_MY_ERR_alloc:
+	return -1;
 }
 
-static void my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
+static int my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 {
 	int i, n;
 	config_setting_t *item;
@@ -147,8 +161,8 @@ static void my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		source = my_mem_alloc(sizeof(*source));
 		if (source == NULL) {
-			MY_ERROR("conf: error creating source (%s)" , strerror(errno));
-			exit(1);
+			MY_ERROR("conf: error creating source #%d (%s)", i, strerror(errno));
+			goto _MY_ERR_alloc;
 		}
 
 		source->index = i;
@@ -172,13 +186,20 @@ static void my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_enqueue(conf->sources, source)) {
-			MY_ERROR("conf: error queuing source #d '%s'" , source->index, source->name);
-			exit(1);
+			MY_ERROR("conf: error queuing source #%d '%s'" , source->index, source->name);
+			goto _MY_ERR_queue;
 		}
 	}
+
+	return 0;
+
+_MY_ERR_queue:
+	my_mem_free(source);
+_MY_ERR_alloc:
+	return -1;
 }
 
-static void my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
+static int my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 {
 	int i, n;
 	config_setting_t *item;
@@ -191,8 +212,8 @@ static void my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		target = my_mem_alloc(sizeof(*target));
 		if (target == NULL) {
-			MY_ERROR("conf: error creating target (%s)" , strerror(errno));
-			exit(1);
+			MY_ERROR("conf: error creating target #%d (%s)", i, strerror(errno));
+			goto _MY_ERR_alloc;
 		}
 
 		target->index = i;
@@ -216,13 +237,20 @@ static void my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_enqueue(conf->targets, target)) {
-			MY_ERROR("conf: error queuing target #d '%s'" , target->index, target->name);
-			exit(1);
+			MY_ERROR("conf: error queuing target #%d '%s'" , target->index, target->name);
+			goto _MY_ERR_queue;
 		}
 	}
+
+	return 0;
+
+_MY_ERR_queue:
+	my_mem_free(target);
+_MY_ERR_alloc:
+	return -1;
 }
 
-static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
+static int my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 {
 	int i, n;
 	config_setting_t *item;
@@ -235,8 +263,8 @@ static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		wiring = my_mem_alloc(sizeof(*wiring));
 		if (wiring == NULL) {
-			MY_ERROR("conf: error creating wiring (%s)" , strerror(errno));
-			exit(1);
+			MY_ERROR("conf: error creating wiring #%d (%s)", i, strerror(errno));
+			goto _MY_ERR_alloc;
 		}
 
 		wiring->index = i;
@@ -260,10 +288,17 @@ static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_enqueue(conf->wirings, wiring)) {
-			MY_ERROR("conf: error queuing wiring #d '%s'" , wiring->index, wiring->name);
-			exit(1);
+			MY_ERROR("conf: error queuing wiring #%d '%s'" , wiring->index, wiring->name);
+			goto _MY_ERR_queue;
 		}
 	}
+
+	return 0;
+
+_MY_ERR_queue:
+	my_mem_free(wiring);
+_MY_ERR_alloc:
+	return -1;
 }
 
 my_conf_t *my_conf_create(void)
@@ -273,48 +308,80 @@ my_conf_t *my_conf_create(void)
 	conf = my_mem_alloc(sizeof(*conf));
 	if (!conf) {
 		MY_ERROR("conf: error creating data (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_alloc;
 	}
 
 	conf->controls = my_list_create();
 	if (conf->controls == NULL) {
 		MY_ERROR("conf: error creating control list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_controls;
 	}
 
 	conf->filters = my_list_create();
 	if (conf->filters == NULL) {
 		MY_ERROR("conf: error creating filter list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_filters;
 	}
 
 	conf->sources = my_list_create();
 	if (conf->sources == NULL) {
 		MY_ERROR("conf: error creating source list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_sources;
 	}
 
 	conf->targets = my_list_create();
 	if (conf->targets == NULL) {
 		MY_ERROR("conf: error creating target list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_targets;
 	}
 
 	conf->wirings = my_list_create();
 	if (conf->wirings == NULL) {
 		MY_ERROR("conf: error creating wiring list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_wirings;
 	}
 
 	return conf;
+
+	my_list_destroy(conf->wirings);
+_MY_ERR_create_wirings:
+	my_list_destroy(conf->targets);
+_MY_ERR_create_targets:
+	my_list_destroy(conf->sources);
+_MY_ERR_create_sources:
+	my_list_destroy(conf->filters);
+_MY_ERR_create_filters:
+	my_list_destroy(conf->controls);
+_MY_ERR_create_controls:
+	my_mem_free(conf);
+_MY_ERR_alloc:
+	return NULL;
 }
+
 
 void my_conf_destroy(my_conf_t *conf)
 {
+	void *data;
+
+	my_list_purge(conf->wirings, MY_LIST_PURGE_FLAG_FREE_DATA);
+	my_list_destroy(conf->wirings);
+
+	my_list_purge(conf->targets, MY_LIST_PURGE_FLAG_FREE_DATA);
+	my_list_destroy(conf->targets);
+
+	my_list_purge(conf->sources, MY_LIST_PURGE_FLAG_FREE_DATA);
+	my_list_destroy(conf->sources);
+
+	my_list_purge(conf->filters, MY_LIST_PURGE_FLAG_FREE_DATA);
+	my_list_destroy(conf->filters);
+
+	my_list_purge(conf->controls, MY_LIST_PURGE_FLAG_FREE_DATA);
+	my_list_destroy(conf->controls);
+
 	my_mem_free(conf);
 }
 
-void my_conf_parse(my_conf_t *conf)
+int my_conf_parse(my_conf_t *conf)
 {
 	config_t config;
 	config_setting_t *item;
@@ -325,7 +392,7 @@ void my_conf_parse(my_conf_t *conf)
 
 	if (config_read_file(&config, conf->cfg_file) == CONFIG_FALSE) {
 		MY_ERROR("error reading configuration file '%s' (%s, line %d)", conf->cfg_file, config_error_text(&config), config_error_line(&config));
-		exit(1);
+		goto _MY_ERR_read_file;
 	}
 
 	if (conf->log_file == NULL) {
@@ -346,28 +413,49 @@ void my_conf_parse(my_conf_t *conf)
 
 	item = config_lookup(&config, "controls");
 	if (item) {
-		my_conf_parse_controls(conf, item);
+		if (my_conf_parse_controls(conf, item) != 0) {
+			goto _MY_ERR_parse_controls;
+		}
 	}
 
 	item = config_lookup(&config, "filters");
 	if (item) {
-		my_conf_parse_filters(conf, item);
+		if (my_conf_parse_filters(conf, item) != 0) {
+			goto _MY_ERR_parse_filters;
+		}
 	}
 
 	item = config_lookup(&config, "sources");
 	if (item) {
-		my_conf_parse_sources(conf, item);
+		if (my_conf_parse_sources(conf, item) != 0) {
+			goto _MY_ERR_parse_sources;
+		}
 	}
 
 	item = config_lookup(&config, "targets");
 	if (item) {
-		my_conf_parse_targets(conf, item);
+		if (my_conf_parse_targets(conf, item) != 0) {
+			goto _MY_ERR_parse_targets;
+		}
 	}
 
 	item = config_lookup(&config, "wirings");
 	if (item) {
-		my_conf_parse_wirings(conf, item);
+		if (my_conf_parse_wirings(conf, item) != 0) {
+			goto _MY_ERR_parse_wirings;
+		}
 	}
 
 	config_destroy(&config);
+
+	return 0;
+
+_MY_ERR_parse_wirings:
+_MY_ERR_parse_targets:
+_MY_ERR_parse_sources:
+_MY_ERR_parse_filters:
+_MY_ERR_parse_controls:
+_MY_ERR_read_file:
+	config_destroy(&config);
+	return -1;
 }

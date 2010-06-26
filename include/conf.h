@@ -44,7 +44,7 @@ struct my_conf {
 extern my_conf_t * my_conf_create(void);
 void my_conf_destroy(my_conf_t *conf);
 
-extern void my_conf_parse(my_conf_t *conf);
+extern int my_conf_parse(my_conf_t *conf);
 
 #ifdef MY_DEBUGGING
 extern void my_conf_dump(my_conf_t *conf);

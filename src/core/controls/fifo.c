@@ -48,7 +48,7 @@ my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 
 	control_priv = my_mem_alloc(sizeof(my_control_priv_t));
 	if (!control_priv) {
-		return NULL;
+		goto _MY_ERR_alloc;
 	}
 
 	p = strchr(conf->url, ':');
@@ -56,7 +56,7 @@ my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 		n = p - conf->url;
 		if (strncmp(conf->url, "file", n) != 0) {
 			my_log(MY_LOG_ERROR, "core/control/fifo: unknown method '%.2$*1$s' in url '%$1s'", conf->url, n);
-			goto _error;
+			goto _MY_ERR_parse_url;
 		}
 		p++;
 	} else {
@@ -68,20 +68,23 @@ my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 	MY_DEBUG("core/control/fifo: creating fifo '%s'", control_priv->path);
 	if (mkfifo(control_priv->path, 0600) == -1) {
 		my_log(MY_LOG_ERROR, "core/control/fifo: error creating fifo '%s' (%s)", control_priv->path, strerror(errno));
-		goto _error;
+		goto _MY_ERR_create_fifo;
 	}
 
 	MY_DEBUG("core/control/fifo: opening fifo '%s'", control_priv->path);
 	control_priv->fd = open(control_priv->path, O_RDWR | O_NONBLOCK, 0);
 	if (control_priv->fd == -1) {
 		my_log(MY_LOG_ERROR, "core/control/fifo: error opening fifo '%s' (%s)", control_priv->path, strerror(errno));
-		return -1;
+		goto _MY_ERR_open_fifo;
 	}
 
 	return (my_control_t *)control_priv;
 
-_error:
+_MY_ERR_open_fifo:
+_MY_ERR_create_fifo:
+_MY_ERR_parse_url:
 	my_mem_free(control_priv);
+_MY_ERR_alloc:
 	return NULL;
 }
 
@@ -92,7 +95,6 @@ void my_control_fifo_destroy(my_control_t *control)
 	MY_DEBUG("core/control/fifo: closing fifo '%s'", control_priv->path);
 	if (close(control_priv->fd) == -1) {
 		my_log(MY_LOG_ERROR, "core/control/fifo: error closing fifo '%s' (%s)", control_priv->path, strerror(errno));
-		return -1;
 	}
 
 	MY_DEBUG("core/control/fifo: removing fifo '%s'", control_priv->path);

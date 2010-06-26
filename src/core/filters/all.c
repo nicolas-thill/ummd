@@ -27,19 +27,21 @@
 #include "util/list.h"
 #include "util/log.h"
 
-#define MY_FILTER_REGISTER(c,x) { \
+static my_list_t my_filters;
+
+#define MY_FILTER_REGISTER(x) { \
 	extern my_filter_impl_t my_filter_##x; \
-	my_filter_register((c), &my_filter_##x); \
+	my_filter_register(&my_filter_##x); \
 }
 
-void my_filter_register(my_core_t *core, my_filter_impl_t *filter)
+static void my_filter_register(my_filter_impl_t *filter)
 {
-	my_list_queue(core->filters, filter);
+	my_list_queue(&my_filters, filter);
 }
 
-void my_filter_register_all(my_core_t *core)
+void my_filter_register_all(void)
 {
-	MY_FILTER_REGISTER(core, delay);
+	MY_FILTER_REGISTER(delay);
 }
 
 #ifdef MY_DEBUGGING
@@ -56,11 +58,11 @@ static int my_filter_dump(void *data, void *user, int flags)
 	return 0;
 }
 
-void my_filter_dump_all(my_core_t *core)
+void my_filter_dump_all(void)
 {
 	MY_DEBUG("# registered filters");
 	MY_DEBUG("filters = (");
-	my_list_iter(core->filters, my_filter_dump, NULL);
+	my_list_iter(&my_filters, my_filter_dump, NULL);
 	MY_DEBUG(");");
 
 }

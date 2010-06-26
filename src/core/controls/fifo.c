@@ -29,7 +29,6 @@
 
 #include "core/controls.h"
 
-#include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
 

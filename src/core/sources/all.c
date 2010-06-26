@@ -27,17 +27,19 @@
 #include "util/list.h"
 #include "util/log.h"
 
-#define MY_SOURCE_REGISTER(c,x) { \
+static my_list_t *my_sources;
+
+#define MY_SOURCE_REGISTER(x) { \
 	extern my_source_impl_t my_source_##x; \
-	my_source_register((c), &my_source_##x); \
+	my_source_register(&my_source_##x); \
 }
 
-void my_source_register(my_core_t *core, my_source_impl_t *source)
+void my_source_register(my_source_impl_t *source)
 {
-	my_list_queue(core->sources, source);
+	my_list_queue(&my_sources, source);
 }
 
-void my_source_register_all(my_core_t *core)
+void my_source_register_all(void)
 {
 /*
 	MY_SOURCE_REGISTER(core, file);
@@ -62,11 +64,11 @@ static int my_source_dump(void *data, void *user, int flags)
 	return 0;
 }
 
-void my_source_dump_all(my_core_t *core)
+void my_source_dump_all(void)
 {
 	MY_DEBUG("# registered sources");
 	MY_DEBUG("sources = (");
-	my_list_iter(core->sources, my_source_dump, NULL);
+	my_list_iter(&my_sources, my_source_dump, NULL);
 	MY_DEBUG(");");
 
 }

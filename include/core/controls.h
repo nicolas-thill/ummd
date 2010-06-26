@@ -70,13 +70,12 @@ struct my_control_impl {
 };
 
 
-my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf);
+extern my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf);
 
-extern void my_control_register(my_core_t *core, my_control_impl_t *impl);
-extern void my_control_register_all(my_core_t *core);
+extern void my_control_register_all(void);
 
 #ifdef MY_DEBUGGING
-extern void my_control_dump_all(my_core_t *core);
+extern void my_control_dump_all(void);
 #endif
 
 #endif /* __MY_CONTROLS_H */

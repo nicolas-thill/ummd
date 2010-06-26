@@ -45,11 +45,10 @@ struct my_filter_impl {
 };
 
 
-extern void my_filter_register(my_core_t *core, my_filter_impl_t *filter);
-extern void my_filter_register_all(my_core_t *core);
+extern void my_filter_register_all(void);
 
 #ifdef MY_DEBUGGING
-extern void my_filter_dump_all(my_core_t *core);
+extern void my_filter_dump_all(void);
 #endif
 
 #endif /* __MY_FILTERS_H */

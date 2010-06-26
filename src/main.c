@@ -35,7 +35,7 @@
 static char *me;
 
 my_conf_t *my_conf;
-my_core_t my_core;
+my_core_t *my_core;
 
 char my_usage[] =
 	"Usage: %1$s [OPTIONS]\n"
@@ -77,8 +77,6 @@ static int my_show_version(void)
 
 static void my_startup(int argc, char *argv[])
 {
-	my_core_t *core = &my_core;
-
 	int opt_c;
 	char buf[FILENAME_MAX];
 
@@ -148,10 +146,12 @@ static void my_startup(int argc, char *argv[])
 	my_conf_dump(my_conf);
 #endif
 
-	my_core_init(core, my_conf);
+	my_core = my_core_create();
+
+	my_core_init(my_core, my_conf);
 
 #ifdef MY_DEBUGGING
-	my_core_dump(core);
+	my_core_dump(my_core);
 #endif
 
 	if (my_log_open(my_conf->log_file, my_conf->log_level)) {

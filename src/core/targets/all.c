@@ -27,17 +27,19 @@
 #include "util/list.h"
 #include "util/log.h"
 
-#define MY_TARGET_REGISTER(c,x) { \
+static my_list_t my_targets;
+
+#define MY_TARGET_REGISTER(x) { \
 	extern my_target_impl_t my_target_##x; \
-	my_target_register((c), &my_target_##x); \
+	my_target_register(&my_target_##x); \
 }
 
 void my_target_register(my_core_t *core, my_target_impl_t *target)
 {
-	my_list_queue(core->targets, target);
+	my_list_queue(&my_targets, target);
 }
 
-void my_target_register_all(my_core_t *core)
+void my_target_register_all(void)
 {
 /*
 	MY_TARGET_REGISTER(core, file);
@@ -62,11 +64,11 @@ static int my_target_dump(void *data, void *user, int flags)
 	return 0;
 }
 
-void my_target_dump_all(my_core_t *core)
+void my_target_dump_all(void)
 {
 	MY_DEBUG("# registered targets");
 	MY_DEBUG("targets = (");
-	my_list_iter(core->targets, my_target_dump, NULL);
+	my_list_iter(&my_targets, my_target_dump, NULL);
 	MY_DEBUG(");");
 
 }

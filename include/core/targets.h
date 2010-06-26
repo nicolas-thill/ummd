@@ -45,11 +45,10 @@ struct my_target_impl {
 };
 
 
-extern void my_target_register(my_core_t *core, my_target_impl_t *target);
-extern void my_target_register_all(my_core_t *core);
+extern void my_target_register_all(void);
 
 #ifdef MY_DEBUGGING
-extern void my_target_dump_all(my_core_t *core);
+extern void my_target_dump_all(void);
 #endif
 
 #endif /* __MY_TARGETS_H */

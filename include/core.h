@@ -23,8 +23,6 @@
 #ifndef __MY_CORE_H
 #define __MY_CORE_H
 
-#include <event.h>
-
 #include "autoconf.h"
 
 #include "conf.h"
@@ -38,10 +36,12 @@ struct my_core {
 	my_list_t *filters;
 	my_list_t *sources;
 	my_list_t *targets;
-	struct event_base *evb;
 };
 
-extern void my_core_init(my_core_t *core, my_conf_t *conf);
+extern my_core_t *my_core_create(void);
+extern void my_core_destroy(my_core_t *core);
+
+extern int my_core_init(my_core_t *core, my_conf_t *conf);
 
 #ifdef MY_DEBUGGING
 extern void my_core_dump(my_core_t *core);

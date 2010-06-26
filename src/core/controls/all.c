@@ -27,17 +27,19 @@
 #include "util/list.h"
 #include "util/log.h"
 
-#define MY_CONTROL_REGISTER(c,x) { \
+static my_list_t my_controls;
+
+#define MY_CONTROL_REGISTER(x) { \
 	extern my_control_impl_t my_control_##x; \
-	my_control_register((c), &my_control_##x); \
+	my_control_register(&my_control_##x); \
 }
 
-static my_control_impl_t *my_control_find_impl(my_core_t *core, char *name)
+static my_control_impl_t *my_control_find_impl(char *name)
 {
 	my_control_impl_t *impl;
 	my_node_t *node;
 
-	for (node = core->controls->head; node; node = node->next) {
+	for (node = my_controls.head; node; node = node->next) {
 		impl = (my_control_impl_t *)(node->data);
 		if (strcmp(impl->name, name) == 0) {
 			return impl;
@@ -51,7 +53,7 @@ my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
 	my_control_t *control;
 	my_control_impl_t *impl;
 	
-	impl = my_control_find_impl(core, conf->type);
+	impl = my_control_find_impl(conf->type);
 	if (!impl) {
 		MY_ERROR("unknown control interface (%s)" , conf->type);
 		return NULL;
@@ -69,18 +71,18 @@ my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
 	return control;
 }
 
-void my_control_register(my_core_t *core, my_control_impl_t *impl)
+static void my_control_register(my_control_impl_t *impl)
 {
-	my_list_queue(core->controls, impl);
+	my_list_queue(&my_controls, impl);
 }
 
-void my_control_register_all(my_core_t *core)
+void my_control_register_all(void)
 {
-	MY_CONTROL_REGISTER(core, fifo);
-	MY_CONTROL_REGISTER(core, osc);
+	MY_CONTROL_REGISTER(fifo);
+	MY_CONTROL_REGISTER(osc);
 /*
-	MY_CONTROL_REGISTER(core, http);
-	MY_CONTROL_REGISTER(core, sock);
+	MY_CONTROL_REGISTER(http);
+	MY_CONTROL_REGISTER(sock);
 */
 }
 
@@ -99,11 +101,11 @@ static int my_control_dump(void *data, void *user, int flags)
 }
 
 
-void my_control_dump_all(my_core_t *core)
+void my_control_dump_all(void)
 {
 	MY_DEBUG("# registered control interfaces");
 	MY_DEBUG("controls = (");
-	my_list_iter(core->controls, my_control_dump, NULL);
+	my_list_iter(&my_controls, my_control_dump, NULL);
 	MY_DEBUG(");");
 
 }

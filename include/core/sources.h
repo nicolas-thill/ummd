@@ -45,11 +45,10 @@ struct my_source_impl {
 };
 
 
-extern void my_source_register(my_core_t *core, my_source_impl_t *source);
-extern void my_source_register_all(my_core_t *core);
+extern void my_source_register_all(void);
 
 #ifdef MY_DEBUGGING
-extern void my_source_dump_all(my_core_t *core);
+extern void my_source_dump_all(void);
 #endif
 
 #endif /* __MY_SOURCES_H */

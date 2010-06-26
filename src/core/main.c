@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <event.h>
+
 #include "core.h"
 
 #include "core/controls.h"
@@ -34,9 +36,25 @@
 #include "util/log.h"
 #include "util/mem.h"
 
-void my_core_init(my_core_t *core, my_conf_t *conf)
+typedef struct my_core my_core_priv_t;
+
+struct my_core_priv {
+	my_core_t base;
+	struct event_base *evb;
+};
+
+#define MY_CORE(p) ((my_core_t *)p)
+#define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
+
+my_core_t *my_core_create(void)
 {
-	my_mem_zero(core, sizeof(*core));
+	my_core_t *core;
+
+	core = my_mem_alloc(sizeof(my_core_priv_t));
+	if (!core) {
+		MY_ERROR("core: error creating data structure (%s)" , strerror(errno));
+		exit(1);
+	}
 	
 	core->controls = my_list_create();
 	if (core->controls == NULL) {
@@ -62,21 +80,38 @@ void my_core_init(my_core_t *core, my_conf_t *conf)
 		exit(1);
 	}
 
-	my_control_register_all(core);
-	my_filter_register_all(core);
-	my_source_register_all(core);
-	my_target_register_all(core);
+	return core;
 }
 
+void my_core_destroy(my_core_t *core) {
+	my_list_destroy(core->controls);
+	my_list_destroy(core->filters);
+	my_list_destroy(core->sources);
+	my_list_destroy(core->targets);
+
+	my_mem_free(core);
+}
+
+int my_core_init(my_core_t *core, my_conf_t *conf)
+{
+	my_core_priv_t *c = (my_core_priv_t *)core;
+
+	my_control_register_all();
+	my_filter_register_all();
+	my_source_register_all();
+	my_target_register_all();
+
+	return 0;
+}
 
 #ifdef MY_DEBUGGING
 
 void my_core_dump(my_core_t *core)
 {
-	my_control_dump_all(core);
-	my_filter_dump_all(core);
-	my_source_dump_all(core);
-	my_target_dump_all(core);
+	my_control_dump_all();
+	my_filter_dump_all();
+	my_source_dump_all();
+	my_target_dump_all();
 }
 
 #endif /* MY_DEBUGGING */

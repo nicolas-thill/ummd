@@ -27,7 +27,7 @@
 #include "util/list.h"
 #include "util/log.h"
 
-static my_list_t *my_sources;
+static my_list_t my_sources;
 
 #define MY_SOURCE_REGISTER(x) { \
 	extern my_source_impl_t my_source_##x; \

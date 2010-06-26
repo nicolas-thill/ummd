@@ -77,7 +77,7 @@ static void my_control_destroy(my_control_t *control)
 	control->impl->destroy(control);
 }
 
-int my_control_create_one(void *data, void *user, int flags)
+static int my_control_create_fn(void *data, void *user, int flags)
 {
 	my_control_conf_t *conf = (my_control_conf_t *)data;
 	my_core_t *core = (my_core_t *)user;
@@ -91,21 +91,18 @@ int my_control_create_one(void *data, void *user, int flags)
 	return 0;
 }
 
-int my_control_destroy_one(void *data, void *user, int flags)
-{
-	my_control_t *control = (my_control_conf_t *)data;
-
-	my_control_destroy(control);
-}
-
 int my_control_create_all(my_core_t *core, my_conf_t *conf)
 {
-	return my_list_iter(conf->controls, my_control_create_one, core);
+	return my_list_iter(conf->controls, my_control_create_fn, core);
 }
 
 int my_control_destroy_all(my_core_t *core)
 {
-	return my_list_iter(core->controls, my_control_destroy_one, core);
+	my_control_t *control;
+
+	while (control = my_list_dequeue(core->controls)) {
+		my_control_destroy(control);
+	}
 }
 
 static void my_control_register(my_control_impl_t *impl)
@@ -125,7 +122,7 @@ void my_control_register_all(void)
 
 #ifdef MY_DEBUGGING
 
-static int my_control_dump(void *data, void *user, int flags)
+static int my_control_dump_fn(void *data, void *user, int flags)
 {
 	my_control_impl_t *impl = (my_control_impl_t *)data;
 
@@ -142,7 +139,7 @@ void my_control_dump_all(void)
 {
 	MY_DEBUG("# registered control interfaces");
 	MY_DEBUG("controls = (");
-	my_list_iter(&my_controls, my_control_dump, NULL);
+	my_list_iter(&my_controls, my_control_dump_fn, NULL);
 	MY_DEBUG(");");
 
 }

@@ -52,7 +52,7 @@ void my_target_register_all(void)
 
 #ifdef MY_DEBUGGING
 
-static int my_target_dump(void *data, void *user, int flags)
+static int my_target_dump_fn(void *data, void *user, int flags)
 {
 	my_target_impl_t *target = (my_target_impl_t *)data;
 
@@ -68,7 +68,7 @@ void my_target_dump_all(void)
 {
 	MY_DEBUG("# registered targets");
 	MY_DEBUG("targets = (");
-	my_list_iter(&my_targets, my_target_dump, NULL);
+	my_list_iter(&my_targets, my_target_dump_fn, NULL);
 	MY_DEBUG(");");
 
 }

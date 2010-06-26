@@ -46,7 +46,7 @@ void my_filter_register_all(void)
 
 #ifdef MY_DEBUGGING
 
-static int my_filter_dump(void *data, void *user, int flags)
+static int my_filter_dump_fn(void *data, void *user, int flags)
 {
 	my_filter_impl_t *filter = (my_filter_impl_t *)data;
 
@@ -62,7 +62,7 @@ void my_filter_dump_all(void)
 {
 	MY_DEBUG("# registered filters");
 	MY_DEBUG("filters = (");
-	my_list_iter(&my_filters, my_filter_dump, NULL);
+	my_list_iter(&my_filters, my_filter_dump_fn, NULL);
 	MY_DEBUG(");");
 
 }

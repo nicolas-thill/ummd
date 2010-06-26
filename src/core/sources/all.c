@@ -52,7 +52,7 @@ void my_source_register_all(void)
 
 #ifdef MY_DEBUGGING
 
-static int my_source_dump(void *data, void *user, int flags)
+static int my_source_dump_fn(void *data, void *user, int flags)
 {
 	my_source_impl_t *source = (my_source_impl_t *)data;
 
@@ -68,7 +68,7 @@ void my_source_dump_all(void)
 {
 	MY_DEBUG("# registered sources");
 	MY_DEBUG("sources = (");
-	my_list_iter(&my_sources, my_source_dump, NULL);
+	my_list_iter(&my_sources, my_source_dump_fn, NULL);
 	MY_DEBUG(");");
 
 }

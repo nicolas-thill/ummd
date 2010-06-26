@@ -45,6 +45,8 @@ typedef void (*my_control_destroy_func_t)(my_control_t *control);
 typedef int (*my_control_open_func_t)(my_control_t *control);
 typedef int (*my_control_close_func_t)(my_control_t *control);
 
+#define MY_CONTROL(p) ((my_control_t *)(p))
+
 struct my_control {
 	my_core_t *core;
 	my_control_conf_t *conf;
@@ -70,7 +72,7 @@ struct my_control_impl {
 };
 
 
-extern my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf);
+extern int my_control_create_all(my_core_t *core, my_conf_t *conf);
 
 extern void my_control_register_all(void);
 

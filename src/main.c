@@ -22,9 +22,11 @@
  
 #include <errno.h>
 #include <getopt.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #include "autoconf.h"
 
@@ -75,7 +77,40 @@ static int my_show_version(void)
 	fprintf(stdout, my_version, me, PACKAGE_VERSION);
 }
 
-static void my_startup(int argc, char *argv[])
+static void my_handle_children(int sig)
+{
+	pid_t pid;
+	int status;
+	
+	while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+		my_log(MY_LOG_NOTICE, "child (pid: %d) exited with status %d");
+	}
+}
+
+static void my_handle_shutdown(int sig)
+{
+	MY_DEBUG("received signal '%s'", strsignal(sig));
+	my_core_stop(my_core);
+}
+
+static void my_install_sig_handlers(void)
+{
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = my_handle_children;
+	sa.sa_flags = SA_NOCLDSTOP | SA_RESTART;
+	sigaction(SIGCHLD, &sa, NULL);
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = my_handle_shutdown;
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+}
+
+int main(int argc, char *argv[])
 {
 	int opt_c;
 	char buf[FILENAME_MAX];
@@ -142,44 +177,22 @@ static void my_startup(int argc, char *argv[])
 		my_conf->pid_file = strdup(buf);
 	}
 
-#ifdef MY_DEBUGGING
-	my_conf_dump(my_conf);
-#endif
-
-	my_core = my_core_create();
-
-	my_core_init(my_core, my_conf);
-
-#ifdef MY_DEBUGGING
-	my_core_dump(my_core);
-#endif
-
 	if (my_log_open(my_conf->log_file, my_conf->log_level)) {
 		exit(1);
 	}
 
 	my_log(MY_LOG_NOTICE, "started");
-}
 
-void my_cleanup()
-{
+	my_core = my_core_create(my_conf);
+	if (my_core) {
+		my_install_sig_handlers();
+		my_core_loop(my_core);
+		my_core_destroy(my_core);
+	}
+
 	my_log(MY_LOG_NOTICE, "ended");
 
 	my_log_close();
-}
-
-void my_loop()
-{
-	while (1) {
-		sleep(1);
-	}
-}
-
-int main(int argc, char *argv[])
-{
-	my_startup(argc, argv);
-	my_loop();
-	my_cleanup();
 
 	return 0;
 }

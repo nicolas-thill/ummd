@@ -36,19 +36,25 @@
 #include "util/log.h"
 #include "util/mem.h"
 
-typedef struct my_core my_core_priv_t;
+typedef struct my_core_priv my_core_priv_t;
 
 struct my_core_priv {
 	my_core_t base;
+	int running;
 	struct event_base *evb;
 };
 
 #define MY_CORE(p) ((my_core_t *)p)
 #define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
 
-my_core_t *my_core_create(void)
+my_core_t *my_core_create(my_conf_t *conf)
 {
 	my_core_t *core;
+
+	my_control_register_all();
+	my_filter_register_all();
+	my_source_register_all();
+	my_target_register_all();
 
 	core = my_mem_alloc(sizeof(my_core_priv_t));
 	if (!core) {
@@ -80,10 +86,15 @@ my_core_t *my_core_create(void)
 		exit(1);
 	}
 
+	my_control_create_all(core, conf);
+
 	return core;
 }
 
-void my_core_destroy(my_core_t *core) {
+void my_core_destroy(my_core_t *core)
+{
+	my_control_destroy_all(core);
+
 	my_list_destroy(core->controls);
 	my_list_destroy(core->filters);
 	my_list_destroy(core->sources);
@@ -92,16 +103,17 @@ void my_core_destroy(my_core_t *core) {
 	my_mem_free(core);
 }
 
-int my_core_init(my_core_t *core, my_conf_t *conf)
+void my_core_loop(my_core_t *core)
 {
-	my_core_priv_t *c = (my_core_priv_t *)core;
+	MY_CORE_PRIV(core)->running = 1;
+	while (MY_CORE_PRIV(core)->running) {
+		sleep(1);
+	}
+}
 
-	my_control_register_all();
-	my_filter_register_all();
-	my_source_register_all();
-	my_target_register_all();
-
-	return 0;
+void my_core_stop(my_core_t *core)
+{
+	MY_CORE_PRIV(core)->running = 0;
 }
 
 #ifdef MY_DEBUGGING

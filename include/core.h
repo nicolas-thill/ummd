@@ -38,10 +38,11 @@ struct my_core {
 	my_list_t *targets;
 };
 
-extern my_core_t *my_core_create(void);
+extern my_core_t *my_core_create(my_conf_t *conf);
 extern void my_core_destroy(my_core_t *core);
 
-extern int my_core_init(my_core_t *core, my_conf_t *conf);
+extern void my_core_loop(my_core_t *core);
+extern void my_core_stop(my_core_t *core);
 
 #ifdef MY_DEBUGGING
 extern void my_core_dump(my_core_t *core);

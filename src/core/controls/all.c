@@ -45,22 +45,23 @@ static my_control_impl_t *my_control_find_impl(char *name)
 			return impl;
 		}
 	}
+
 	return NULL;
 }
 
-my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
+static my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
 {
 	my_control_t *control;
 	my_control_impl_t *impl;
 	
 	impl = my_control_find_impl(conf->type);
 	if (!impl) {
-		MY_ERROR("unknown control interface (%s)" , conf->type);
+		my_log(MY_LOG_ERROR, "core/control: unknown control interface '%s' for control '%s'", conf->type, conf->name);
 		return NULL;
 	}
 	control = impl->create(conf);
 	if (!control) {
-		MY_ERROR("error creating control (%s)" , conf->name);
+		my_log(MY_LOG_ERROR, "core/control: error creating control '%s'", conf->name);
 		return NULL;
 	}
 
@@ -71,6 +72,42 @@ my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
 	return control;
 }
 
+static void my_control_destroy(my_control_t *control)
+{
+	control->impl->destroy(control);
+}
+
+int my_control_create_one(void *data, void *user, int flags)
+{
+	my_control_conf_t *conf = (my_control_conf_t *)data;
+	my_core_t *core = (my_core_t *)user;
+	my_control_t *control;
+
+	control = my_control_create(core, conf);
+	if (control) {
+		my_list_queue(core->controls, control);
+	}
+
+	return 0;
+}
+
+int my_control_destroy_one(void *data, void *user, int flags)
+{
+	my_control_t *control = (my_control_conf_t *)data;
+
+	my_control_destroy(control);
+}
+
+int my_control_create_all(my_core_t *core, my_conf_t *conf)
+{
+	return my_list_iter(conf->controls, my_control_create_one, core);
+}
+
+int my_control_destroy_all(my_core_t *core)
+{
+	return my_list_iter(core->controls, my_control_destroy_one, core);
+}
+
 static void my_control_register(my_control_impl_t *impl)
 {
 	my_list_queue(&my_controls, impl);
@@ -79,8 +116,8 @@ static void my_control_register(my_control_impl_t *impl)
 void my_control_register_all(void)
 {
 	MY_CONTROL_REGISTER(fifo);
-	MY_CONTROL_REGISTER(osc);
 /*
+	MY_CONTROL_REGISTER(osc);
 	MY_CONTROL_REGISTER(http);
 	MY_CONTROL_REGISTER(sock);
 */

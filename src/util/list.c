@@ -52,6 +52,38 @@ static void my_list_add_tail(my_list_t *list, my_node_t *node)
 	}
 }
 
+static my_node_t *my_list_remove_head(my_list_t *list)
+{
+	my_node_t *node = list->head;
+
+	if (node) {
+		if (node->next) {
+			node->next->prev = NULL;
+			list->head = node;
+		} else {
+			list->head = list->tail = NULL;
+		}
+	}
+
+	return node;
+}
+
+static my_node_t *my_list_remove_tail(my_list_t *list)
+{
+	my_node_t *node = list->tail;
+
+	if (node) {
+		if (node->prev) {
+			node->prev->next = NULL;
+			list->tail = node;
+		} else {
+			list->tail = list->head = NULL;
+		}
+	}
+
+	return node;
+}
+
 my_list_t *my_list_create(void)
 {
 	my_list_t *list;
@@ -77,6 +109,21 @@ void *my_list_get(my_list_t *list, int n)
 		}
 		node = node->next;
 		i++;
+	}
+
+	return NULL;
+}
+
+void *my_list_dequeue(my_list_t *list)
+{
+	my_node_t *node;
+	void *data;
+	
+	node = my_list_remove_tail(list);
+	if (node) {
+		data = node->data;
+		my_mem_free(node);
+		return data;
 	}
 
 	return NULL;

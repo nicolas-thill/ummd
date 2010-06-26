@@ -36,7 +36,7 @@ static my_list_t my_filters;
 
 static void my_filter_register(my_filter_impl_t *filter)
 {
-	my_list_queue(&my_filters, filter);
+	my_list_enqueue(&my_filters, filter);
 }
 
 void my_filter_register_all(void)

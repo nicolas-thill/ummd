@@ -82,7 +82,7 @@ void *my_list_get(my_list_t *list, int n)
 	return NULL;
 }
 
-int my_list_queue(my_list_t *list, void *data)
+int my_list_enqueue(my_list_t *list, void *data)
 {
 	my_node_t *node;
 	

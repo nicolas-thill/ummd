@@ -36,7 +36,7 @@ static my_list_t *my_sources;
 
 void my_source_register(my_source_impl_t *source)
 {
-	my_list_queue(&my_sources, source);
+	my_list_enqueue(&my_sources, source);
 }
 
 void my_source_register_all(void)

@@ -46,6 +46,7 @@ extern void my_list_destroy(my_list_t *list);
 
 extern void *my_list_get(my_list_t *list, int n);
 extern int my_list_iter(my_list_t *list, my_list_iter_fn_t func, void *user);
-extern int my_list_queue(my_list_t *list, void *data);
+
+extern int my_list_enqueue(my_list_t *list, void *data);
 
 #endif /* __MY_UTIL_LIST_H */

@@ -36,7 +36,7 @@ static my_list_t my_targets;
 
 void my_target_register(my_core_t *core, my_target_impl_t *target)
 {
-	my_list_queue(&my_targets, target);
+	my_list_enqueue(&my_targets, target);
 }
 
 void my_target_register_all(void)

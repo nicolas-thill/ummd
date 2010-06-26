@@ -85,7 +85,7 @@ int my_control_create_one(void *data, void *user, int flags)
 
 	control = my_control_create(core, conf);
 	if (control) {
-		my_list_queue(core->controls, control);
+		my_list_enqueue(core->controls, control);
 	}
 
 	return 0;
@@ -110,7 +110,7 @@ int my_control_destroy_all(my_core_t *core)
 
 static void my_control_register(my_control_impl_t *impl)
 {
-	my_list_queue(&my_controls, impl);
+	my_list_enqueue(&my_controls, impl);
 }
 
 void my_control_register_all(void)

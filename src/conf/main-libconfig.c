@@ -84,7 +84,7 @@ static void my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 			control->url = strdup(str_value);
 		}
 
-		if (my_list_queue(conf->controls, control)) {
+		if (my_list_enqueue(conf->controls, control)) {
 			MY_ERROR("conf: error queuing control #d '%s'" , control->index, control->name);
 			exit(1);
 		}
@@ -128,7 +128,7 @@ static void my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 			filter->arg = strdup(str_value);
 		}
 
-		if (my_list_queue(conf->filters, filter)) {
+		if (my_list_enqueue(conf->filters, filter)) {
 			MY_ERROR("conf: error queuing filter #d '%s'" , filter->index, filter->name);
 			exit(1);
 		}
@@ -171,7 +171,7 @@ static void my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 			source->url = strdup(str_value);
 		}
 
-		if (my_list_queue(conf->sources, source)) {
+		if (my_list_enqueue(conf->sources, source)) {
 			MY_ERROR("conf: error queuing source #d '%s'" , source->index, source->name);
 			exit(1);
 		}
@@ -215,7 +215,7 @@ static void my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 			target->url = strdup(str_value);
 		}
 
-		if (my_list_queue(conf->targets, target)) {
+		if (my_list_enqueue(conf->targets, target)) {
 			MY_ERROR("conf: error queuing target #d '%s'" , target->index, target->name);
 			exit(1);
 		}
@@ -259,7 +259,7 @@ static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 			wiring->target = strdup(str_value);
 		}
 
-		if (my_list_queue(conf->wirings, wiring)) {
+		if (my_list_enqueue(conf->wirings, wiring)) {
 			MY_ERROR("conf: error queuing wiring #d '%s'" , wiring->index, wiring->name);
 			exit(1);
 		}

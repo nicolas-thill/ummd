@@ -60,7 +60,7 @@ static void my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		control = my_mem_alloc(sizeof(*control));
 		if (control == NULL) {
-			MY_ERROR("error creating control (%s)" , strerror(errno));
+			MY_ERROR("conf: error creating control (%s)" , strerror(errno));
 			exit(1);
 		}
 
@@ -85,7 +85,7 @@ static void my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_queue(conf->controls, control)) {
-			MY_ERROR("error queuing control #d '%s'" , control->index, control->name);
+			MY_ERROR("conf: error queuing control #d '%s'" , control->index, control->name);
 			exit(1);
 		}
 	}
@@ -104,7 +104,7 @@ static void my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		filter = my_mem_alloc(sizeof(*filter));
 		if (filter == NULL) {
-			MY_ERROR("error creating filter (%s)" , strerror(errno));
+			MY_ERROR("conf: error creating filter (%s)" , strerror(errno));
 			exit(1);
 		}
 
@@ -129,7 +129,7 @@ static void my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_queue(conf->filters, filter)) {
-			MY_ERROR("error queuing filter #d '%s'" , filter->index, filter->name);
+			MY_ERROR("conf: error queuing filter #d '%s'" , filter->index, filter->name);
 			exit(1);
 		}
 	}
@@ -147,7 +147,7 @@ static void my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		source = my_mem_alloc(sizeof(*source));
 		if (source == NULL) {
-			MY_ERROR("error creating source (%s)" , strerror(errno));
+			MY_ERROR("conf: error creating source (%s)" , strerror(errno));
 			exit(1);
 		}
 
@@ -172,7 +172,7 @@ static void my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_queue(conf->sources, source)) {
-			MY_ERROR("error queuing source #d '%s'" , source->index, source->name);
+			MY_ERROR("conf: error queuing source #d '%s'" , source->index, source->name);
 			exit(1);
 		}
 	}
@@ -191,7 +191,7 @@ static void my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		target = my_mem_alloc(sizeof(*target));
 		if (target == NULL) {
-			MY_ERROR("error creating target (%s)" , strerror(errno));
+			MY_ERROR("conf: error creating target (%s)" , strerror(errno));
 			exit(1);
 		}
 
@@ -216,7 +216,7 @@ static void my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_queue(conf->targets, target)) {
-			MY_ERROR("error queuing target #d '%s'" , target->index, target->name);
+			MY_ERROR("conf: error queuing target #d '%s'" , target->index, target->name);
 			exit(1);
 		}
 	}
@@ -235,7 +235,7 @@ static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 		item = config_setting_get_elem(list, i);
 		wiring = my_mem_alloc(sizeof(*wiring));
 		if (wiring == NULL) {
-			MY_ERROR("error creating wiring (%s)" , strerror(errno));
+			MY_ERROR("conf: error creating wiring (%s)" , strerror(errno));
 			exit(1);
 		}
 
@@ -260,7 +260,7 @@ static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 		}
 
 		if (my_list_queue(conf->wirings, wiring)) {
-			MY_ERROR("error queuing wiring #d '%s'" , wiring->index, wiring->name);
+			MY_ERROR("conf: error queuing wiring #d '%s'" , wiring->index, wiring->name);
 			exit(1);
 		}
 	}

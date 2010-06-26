@@ -35,43 +35,6 @@
 
 #include "util/list.h"
 #include "util/log.h"
-#include "util/mem.h"
-
-void my_conf_init(my_conf_t *conf)
-{
-	my_mem_zero(conf, sizeof(*conf));
-
-	conf->controls = my_list_create();
-	if (conf->controls == NULL) {
-		MY_ERROR("error control list (%s)" , strerror(errno));
-		exit(1);
-	}
-
-	conf->filters = my_list_create();
-	if (conf->filters == NULL) {
-		MY_ERROR("error filter list (%s)" , strerror(errno));
-		exit(1);
-	}
-
-	conf->sources = my_list_create();
-	if (conf->sources == NULL) {
-		MY_ERROR("error source list (%s)" , strerror(errno));
-		exit(1);
-	}
-
-	conf->targets = my_list_create();
-	if (conf->targets == NULL) {
-		MY_ERROR("error target list (%s)" , strerror(errno));
-		exit(1);
-	}
-
-	conf->wirings = my_list_create();
-	if (conf->wirings == NULL) {
-		MY_ERROR("error wiring list (%s)" , strerror(errno));
-		exit(1);
-	}
-}
-
 
 #ifdef MY_DEBUGGING
 

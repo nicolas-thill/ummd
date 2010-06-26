@@ -266,6 +266,54 @@ static void my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 	}
 }
 
+my_conf_t *my_conf_create(void)
+{
+	my_conf_t *conf;
+
+	conf = my_mem_alloc(sizeof(*conf));
+	if (!conf) {
+		MY_ERROR("error creating config data (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	conf->controls = my_list_create();
+	if (conf->controls == NULL) {
+		MY_ERROR("error creating control list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	conf->filters = my_list_create();
+	if (conf->filters == NULL) {
+		MY_ERROR("error creating filter list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	conf->sources = my_list_create();
+	if (conf->sources == NULL) {
+		MY_ERROR("error creating source list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	conf->targets = my_list_create();
+	if (conf->targets == NULL) {
+		MY_ERROR("error creating target list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	conf->wirings = my_list_create();
+	if (conf->wirings == NULL) {
+		MY_ERROR("error creating wiring list (%s)" , strerror(errno));
+		exit(1);
+	}
+
+	return conf;
+}
+
+void my_conf_destroy(my_conf_t *conf)
+{
+	my_mem_free(conf);
+}
+
 void my_conf_parse(my_conf_t *conf)
 {
 	config_t config;

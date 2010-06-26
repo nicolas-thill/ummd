@@ -34,7 +34,7 @@
 
 static char *me;
 
-my_conf_t my_conf;
+my_conf_t *my_conf;
 my_core_t my_core;
 
 char my_usage[] =
@@ -77,7 +77,6 @@ static int my_show_version(void)
 
 static void my_startup(int argc, char *argv[])
 {
-	my_conf_t *conf = &my_conf;
 	my_core_t *core = &my_core;
 
 	int opt_c;
@@ -91,18 +90,18 @@ static void my_startup(int argc, char *argv[])
 	}
 	my_log_init(me);
 
-	my_conf_init(conf);
+	my_conf = my_conf_create();
 
 	while ((opt_c = getopt(argc, argv, "C:L:Vh?")) != -1)
 		switch (opt_c) {
 		case 'C':
-			conf->cfg_file = optarg;
+			my_conf->cfg_file = optarg;
 			break;
 		case 'L':
-			conf->log_file = optarg;
+			my_conf->log_file = optarg;
 			break;
 		case 'P':
-			conf->pid_file = optarg;
+			my_conf->pid_file = optarg;
 			break;
 		case 'V':
 			my_show_version();
@@ -119,43 +118,43 @@ static void my_startup(int argc, char *argv[])
 			exit(1);
 	}
 
-	conf->log_level = -1;
+	my_conf->log_level = -1;
 
-	if (conf->cfg_file == NULL) {
+	if (my_conf->cfg_file == NULL) {
 		snprintf(buf, sizeof(buf), "%s/%s.conf", MY_CFG_DIR, me);
-		conf->cfg_file = strdup(buf);
+		my_conf->cfg_file = strdup(buf);
 	}
 
-	my_conf_parse(conf);
+	my_conf_parse(my_conf);
 
-	if (conf->log_file == NULL) {
+	if (my_conf->log_file == NULL) {
 #ifdef MY_DEBUGGING
-		conf->log_file = "stderr";
+		my_conf->log_file = "stderr";
 #else
-		conf->log_file = "syslog";
+		my_conf->log_file = "syslog";
 #endif
 	}
 
-	if (conf->log_level < 0) {
-		conf->log_level = MY_LOG_NOTICE;
+	if (my_conf->log_level < 0) {
+		my_conf->log_level = MY_LOG_NOTICE;
 	}
 
-	if (conf->pid_file == NULL) {
+	if (my_conf->pid_file == NULL) {
 		snprintf(buf, sizeof(buf), "%s/%s.pid", MY_RUN_DIR, me);
-		conf->pid_file = strdup(buf);
+		my_conf->pid_file = strdup(buf);
 	}
 
 #ifdef MY_DEBUGGING
-	my_conf_dump(conf);
+	my_conf_dump(my_conf);
 #endif
 
-	my_core_init(core, conf);
+	my_core_init(core, my_conf);
 
 #ifdef MY_DEBUGGING
 	my_core_dump(core);
 #endif
 
-	if (my_log_open(conf->log_file, conf->log_level)) {
+	if (my_log_open(my_conf->log_file, my_conf->log_level)) {
 		exit(1);
 	}
 

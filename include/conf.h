@@ -41,7 +41,8 @@ struct my_conf {
 	my_list_t *wirings;
 };
 
-extern void my_conf_init(my_conf_t *conf);
+extern my_conf_t * my_config_create(void);
+void my_config_destroy(my_conf_t *conf);
 
 extern void my_conf_parse(my_conf_t *conf);
 

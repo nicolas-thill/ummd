@@ -55,7 +55,7 @@ my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 	if (p) {
 		n = p - conf->url;
 		if (strncmp(conf->url, "file", n) != 0) {
-			my_log(MY_LOG_FATAL, "unknown method '%.2$*1$s' in url '%$1s'", conf->url, n);
+			my_log(MY_LOG_ERROR, "core/control/fifo: unknown method '%.2$*1$s' in url '%$1s'", conf->url, n);
 			goto _error;
 		}
 		p++;
@@ -65,8 +65,9 @@ my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 
 	control_priv->path = p;
 
+	MY_DEBUG("core/control/fifo: creating fifo '%s'", control_priv->path);
 	if (mkfifo(control_priv->path, 0600) == -1) {
-		my_log(MY_LOG_FATAL, "error creating fifo '%s' (%s)", control_priv->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control/fifo: error creating fifo '%s' (%s)", control_priv->path, strerror(errno));
 		goto _error;
 	}
 
@@ -79,10 +80,11 @@ _error:
 
 void my_control_fifo_destroy(my_control_t *control)
 {
-	my_control_priv_t *control_priv;
+	my_control_priv_t *control_priv = (my_control_priv_t *)control;
 
+	MY_DEBUG("core/control/fifo: removing fifo '%s'", control_priv->path);
 	if (unlink(control_priv->path) == -1) {
-		my_log(MY_LOG_FATAL, "error removing fifo '%s' (%s)", control_priv->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control/fifo: error removing fifo '%s' (%s)", control_priv->path, strerror(errno));
 	}
 
 	my_mem_free(control_priv);
@@ -92,9 +94,10 @@ int my_control_fifo_open(my_control_t *control)
 {
 	my_control_priv_t *control_priv = (my_control_priv_t *)control;
 
+	MY_DEBUG("core/control/fifo: opening fifo '%s'", control_priv->path);
 	control_priv->fd = open(control_priv->path, O_RDWR | O_NONBLOCK, 0);
 	if (control_priv->fd == -1) {
-		my_log(MY_LOG_FATAL, "error opening fifo '%s' (%s)", control_priv->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control/fifo: error opening fifo '%s' (%s)", control_priv->path, strerror(errno));
 		return -1;
 	}
 
@@ -105,8 +108,9 @@ int my_control_fifo_close(my_control_t *control)
 {
 	my_control_priv_t *control_priv = (my_control_priv_t *)control;
 
+	MY_DEBUG("core/control/fifo: closing fifo '%s'", control_priv->path);
 	if (close(control_priv->fd) == -1) {
-		my_log(MY_LOG_FATAL, "error closing fifo '%s' (%s)", control_priv->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control/fifo: error closing fifo '%s' (%s)", control_priv->path, strerror(errno));
 		return -1;
 	}
 	return 0;

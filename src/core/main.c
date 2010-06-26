@@ -54,34 +54,46 @@ my_core_t *my_core_create(void)
 	core = my_mem_alloc(sizeof(my_core_priv_t));
 	if (!core) {
 		MY_ERROR("core: error creating data structure (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_alloc;
 	}
 	
 	core->controls = my_list_create();
 	if (core->controls == NULL) {
 		MY_ERROR("core: error creating control list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_controls;
 	}
 
 	core->filters = my_list_create();
 	if (core->filters == NULL) {
 		MY_ERROR("core: error creating filter list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_filters;
 	}
 
 	core->sources = my_list_create();
 	if (core->sources == NULL) {
 		MY_ERROR("core: error creating source list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_sources;
 	}
 
 	core->targets = my_list_create();
 	if (core->targets == NULL) {
 		MY_ERROR("core: error creating target list (%s)" , strerror(errno));
-		exit(1);
+		goto _MY_ERR_create_targets;
 	}
 
 	return core;
+
+	my_list_destroy(core->targets);
+_MY_ERR_create_targets:
+	my_list_destroy(core->sources);
+_MY_ERR_create_sources:
+	my_list_destroy(core->filters);
+_MY_ERR_create_filters:
+	my_list_destroy(core->controls);
+_MY_ERR_create_controls:
+	my_mem_free(core);
+_MY_ERR_alloc:
+	return NULL;
 }
 
 void my_core_destroy(my_core_t *core)

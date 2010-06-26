@@ -21,6 +21,7 @@
  */
 
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -40,12 +41,20 @@ typedef struct my_core_priv my_core_priv_t;
 
 struct my_core_priv {
 	my_core_t base;
-	int running;
 	struct event_base *event_base;
+	struct event event_sigint;
+	struct event event_sigquit;
+	struct event event_sigterm;
 };
 
 #define MY_CORE(p) ((my_core_t *)p)
 #define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
+
+static void my_core_handle_shutdown(int sig, short event, void *p)
+{
+	my_log(MY_LOG_NOTICE, "core: received signal %d" , sig);
+	event_base_loopexit(MY_CORE_PRIV(p)->event_base, NULL);
+}
 
 my_core_t *my_core_create(void)
 {
@@ -91,7 +100,19 @@ my_core_t *my_core_create(void)
 		MY_ERROR("core: error initializing event handling library");
 		goto _MY_ERR_event_base_new;
 	}
-	
+
+	event_set(&(MY_CORE_PRIV(p)->event_sigint), SIGINT, EV_SIGNAL, my_core_handle_shutdown, p);
+	event_base_set(MY_CORE_PRIV(p)->event_base, &(MY_CORE_PRIV(p)->event_sigint));
+	event_add(&(MY_CORE_PRIV(p)->event_sigint), NULL);
+
+	event_set(&(MY_CORE_PRIV(p)->event_sigquit), SIGQUIT, EV_SIGNAL, my_core_handle_shutdown, p);
+	event_base_set(MY_CORE_PRIV(p)->event_base, &(MY_CORE_PRIV(p)->event_sigquit));
+	event_add(&(MY_CORE_PRIV(p)->event_sigquit), NULL);
+
+	event_set(&(MY_CORE_PRIV(p)->event_sigterm), SIGTERM, EV_SIGNAL, my_core_handle_shutdown, p);
+	event_base_set(MY_CORE_PRIV(p)->event_base, &(MY_CORE_PRIV(p)->event_sigterm));
+	event_add(&(MY_CORE_PRIV(p)->event_sigterm), NULL);
+
 	return MY_CORE(p);
 
 _MY_ERR_event_base_new:
@@ -140,15 +161,7 @@ _MY_ERR_create_controls:
 
 void my_core_loop(my_core_t *core)
 {
-	MY_CORE_PRIV(core)->running = 1;
-	while (MY_CORE_PRIV(core)->running) {
-		sleep(1);
-	}
-}
-
-void my_core_stop(my_core_t *core)
-{
-	MY_CORE_PRIV(core)->running = 0;
+	event_base_dispatch(MY_CORE_PRIV(core)->event_base);
 }
 
 #ifdef MY_DEBUGGING

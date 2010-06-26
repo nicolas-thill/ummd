@@ -114,6 +114,7 @@ int main(int argc, char *argv[])
 {
 	int opt_c;
 	char buf[FILENAME_MAX];
+	int rc = 1;
 
 	me = strrchr(argv[0], '/');
 	if (me == NULL ) {
@@ -124,6 +125,9 @@ int main(int argc, char *argv[])
 	my_log_init(me);
 
 	my_conf = my_conf_create();
+	if (!my_conf) {
+		goto _MY_ERR_conf_create;
+	}
 
 	while ((opt_c = getopt(argc, argv, "C:L:Vh?")) != -1)
 		switch (opt_c) {
@@ -138,17 +142,18 @@ int main(int argc, char *argv[])
 			break;
 		case 'V':
 			my_show_version();
-			exit(0);
-			break;
+			rc = 0;
+			goto _MY_EXIT;
 		case '?':
 		case 'h':
 			my_show_usage();
-			exit(0);
-			break;
+			rc = 0;
+			goto _MY_EXIT;
 		default:
 			MY_ERROR("unknow argument '-%c'", (int)opt_c);
 			my_show_usage();
-			exit(1);
+			rc = 1;
+			goto _MY_EXIT;
 	}
 
 	my_conf->log_level = -1;
@@ -158,7 +163,9 @@ int main(int argc, char *argv[])
 		my_conf->cfg_file = strdup(buf);
 	}
 
-	my_conf_parse(my_conf);
+	if (my_conf_parse(my_conf) != 0) {
+		goto _MY_ERR_conf_parse;
+	}
 
 	if (my_conf->log_file == NULL) {
 #ifdef MY_DEBUGGING
@@ -177,23 +184,39 @@ int main(int argc, char *argv[])
 		my_conf->pid_file = strdup(buf);
 	}
 
-	if (my_log_open(my_conf->log_file, my_conf->log_level)) {
-		exit(1);
+	if (my_log_open(my_conf->log_file, my_conf->log_level) != 0) {
+		goto _MY_ERR_log_open;
 	}
 
 	my_log(MY_LOG_NOTICE, "started");
 
 	my_core = my_core_create();
-	if (my_core) {
-		my_core_init(my_core, my_conf);
-		my_install_sig_handlers();
-		my_core_loop(my_core);
-		my_core_destroy(my_core);
+	if (!my_core) {
+		goto _MY_ERR_core_create;
 	}
+
+	if (my_core_init(my_core, my_conf) != 0) {
+		goto _MY_ERR_core_init;
+	}
+	
+	my_install_sig_handlers();
+	my_core_loop(my_core);
+	my_core_destroy(my_core);
 
 	my_log(MY_LOG_NOTICE, "ended");
 
 	my_log_close();
 
 	return 0;
+
+_MY_ERR_core_init:
+	my_core_destroy(my_core);
+_MY_ERR_core_create:
+	my_log_close();
+_MY_ERR_log_open:
+_MY_ERR_conf_parse:
+_MY_EXIT:
+	my_conf_destroy(my_conf);
+_MY_ERR_conf_create:
+	return rc;
 }

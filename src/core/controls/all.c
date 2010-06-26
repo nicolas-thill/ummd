@@ -56,7 +56,7 @@ static my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
 	
 	impl = my_control_find_impl(conf->type);
 	if (!impl) {
-		my_log(MY_LOG_ERROR, "core/control: unknown control interface '%s' for control '%s'", conf->type, conf->name);
+		my_log(MY_LOG_ERROR, "core/control: unknown control interface '%s' for control #%d '%s'", conf->type, conf->index, conf->name);
 		return NULL;
 	}
 	control = impl->create(conf);

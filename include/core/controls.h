@@ -43,7 +43,12 @@ typedef struct my_control_impl my_control_impl_t;
 typedef my_control_t *(*my_control_create_fn_t)(my_control_conf_t *conf);
 typedef void (*my_control_destroy_fn_t)(my_control_t *control);
 
+typedef int (*my_control_open_fn_t)(my_control_t *control);
+typedef int (*my_control_close_fn_t)(my_control_t *control);
+
 #define MY_CONTROL(p) ((my_control_t *)(p))
+#define MY_CONTROL_CONF(p) ((my_control_t *)(p)->conf)
+#define MY_CONTROL_IMPL(p) ((my_control_t *)(p)->impl)
 
 struct my_control {
 	my_core_t *core;
@@ -65,10 +70,16 @@ struct my_control_impl {
 	char *desc;
 	my_control_create_fn_t create;
 	my_control_destroy_fn_t destroy;
+	my_control_open_fn_t open;
+	my_control_close_fn_t close;
 };
 
 
 extern int my_control_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_control_destroy_all(my_core_t *core);
+
+extern int my_control_open_all(my_core_t *core);
+extern int my_control_close_all(my_core_t *core);
 
 extern void my_control_register_all(void);
 

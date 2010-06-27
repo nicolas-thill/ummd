@@ -91,6 +91,24 @@ static int my_control_create_fn(void *data, void *user, int flags)
 	return 0;
 }
 
+static int my_control_open_fn(void *data, void *user, int flags)
+{
+	my_control_t *control = (my_control_t *)data;
+
+	control->impl->open(control);
+
+	return 0;
+}
+
+static int my_control_close_fn(void *data, void *user, int flags)
+{
+	my_control_t *control = (my_control_t *)data;
+
+	control->impl->close(control);
+
+	return 0;
+}
+
 int my_control_create_all(my_core_t *core, my_conf_t *conf)
 {
 	return my_list_iter(conf->controls, my_control_create_fn, core);
@@ -103,6 +121,16 @@ int my_control_destroy_all(my_core_t *core)
 	while (control = my_list_dequeue(core->controls)) {
 		my_control_destroy(control);
 	}
+}
+
+int my_control_open_all(my_core_t *core)
+{
+	return my_list_iter(core->controls, my_control_open_fn, core);
+}
+
+int my_control_close_all(my_core_t *core)
+{
+	return my_list_iter(core->controls, my_control_close_fn, core);
 }
 
 static void my_control_register(my_control_impl_t *impl)

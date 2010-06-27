@@ -40,14 +40,16 @@ struct my_control_priv {
 	int fd;
 };
 
-my_control_t *my_control_fifo_create(my_control_conf_t *conf)
+#define MY_CONTROL_PRIV(p) ((my_control_priv_t *)(p))
+
+static my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 {
-	my_control_priv_t *control_priv;
+	my_control_t *control;
 	char *p;
 	int n;
 
-	control_priv = my_mem_alloc(sizeof(my_control_priv_t));
-	if (!control_priv) {
+	control = my_mem_alloc(sizeof(my_control_priv_t));
+	if (!control) {
 		goto _MY_ERR_alloc;
 	}
 
@@ -63,46 +65,58 @@ my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 		p = conf->url;
 	}
 
-	control_priv->path = p;
+	MY_CONTROL_PRIV(control)->path = p;
 
-	MY_DEBUG("core/control/fifo: creating fifo '%s'", control_priv->path);
-	if (mkfifo(control_priv->path, 0600) == -1) {
-		my_log(MY_LOG_ERROR, "core/control/fifo: error creating fifo '%s' (%s)", control_priv->path, strerror(errno));
-		goto _MY_ERR_create_fifo;
-	}
+	return control;
 
-	MY_DEBUG("core/control/fifo: opening fifo '%s'", control_priv->path);
-	control_priv->fd = open(control_priv->path, O_RDWR | O_NONBLOCK, 0);
-	if (control_priv->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/control/fifo: error opening fifo '%s' (%s)", control_priv->path, strerror(errno));
-		goto _MY_ERR_open_fifo;
-	}
-
-	return (my_control_t *)control_priv;
-
-_MY_ERR_open_fifo:
-_MY_ERR_create_fifo:
 _MY_ERR_parse_url:
-	my_mem_free(control_priv);
+	my_mem_free(control);
 _MY_ERR_alloc:
 	return NULL;
 }
 
-void my_control_fifo_destroy(my_control_t *control)
+static void my_control_fifo_destroy(my_control_t *control)
 {
-	my_control_priv_t *control_priv = (my_control_priv_t *)control;
+	my_mem_free(control);
+}
 
-	MY_DEBUG("core/control/fifo: closing fifo '%s'", control_priv->path);
-	if (close(control_priv->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/control/fifo: error closing fifo '%s' (%s)", control_priv->path, strerror(errno));
+static int my_control_fifo_open(my_control_t *control)
+{
+	MY_DEBUG("core/control/fifo: creating fifo '%s'", MY_CONTROL_PRIV(control)->path);
+	if (mkfifo(MY_CONTROL_PRIV(control)->path, 0600) == -1) {
+		my_log(MY_LOG_ERROR, "core/control/fifo: error creating fifo '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		goto _MY_ERR_create_fifo;
 	}
 
-	MY_DEBUG("core/control/fifo: removing fifo '%s'", control_priv->path);
-	if (unlink(control_priv->path) == -1) {
-		my_log(MY_LOG_ERROR, "core/control/fifo: error removing fifo '%s' (%s)", control_priv->path, strerror(errno));
+	MY_DEBUG("core/control/fifo: opening fifo '%s'", MY_CONTROL_PRIV(control)->path);
+	MY_CONTROL_PRIV(control)->fd = open(MY_CONTROL_PRIV(control)->path, O_RDWR | O_NONBLOCK, 0);
+	if (MY_CONTROL_PRIV(control)->fd == -1) {
+		my_log(MY_LOG_ERROR, "core/control/fifo: error opening fifo '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		goto _MY_ERR_open_fifo;
 	}
 
-	my_mem_free(control_priv);
+	return 0;
+
+_MY_ERR_open_fifo:
+_MY_ERR_create_fifo:
+	return -1;
+}
+
+static int my_control_fifo_close(my_control_t *control)
+{
+	MY_DEBUG("core/control/fifo: closing fifo '%s'", MY_CONTROL_PRIV(control)->path);
+	if (close(MY_CONTROL_PRIV(control)->fd) == -1) {
+		my_log(MY_LOG_ERROR, "core/control/fifo: error closing fifo '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		return -1;
+	}
+
+	MY_DEBUG("core/control/fifo: removing fifo '%s'", MY_CONTROL_PRIV(control)->path);
+	if (unlink(MY_CONTROL_PRIV(control)->path) == -1) {
+		my_log(MY_LOG_ERROR, "core/control/fifo: error removing fifo '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		return -1;
+	}
+
+	return 0;
 }
 
 my_control_impl_t my_control_fifo = {
@@ -111,4 +125,6 @@ my_control_impl_t my_control_fifo = {
 	.desc = "FIFO (named pipe) control interface",
 	.create = my_control_fifo_create,
 	.destroy = my_control_fifo_destroy,
+	.open = my_control_fifo_open,
+	.close = my_control_fifo_close,
 };

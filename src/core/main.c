@@ -102,19 +102,32 @@ my_core_t *my_core_create(void)
 	}
 
 	event_set(&(MY_CORE_PRIV(p)->event_sigint), SIGINT, EV_SIGNAL, my_core_handle_shutdown, p);
-	event_base_set(MY_CORE_PRIV(p)->event_base, &(MY_CORE_PRIV(p)->event_sigint));
-	event_add(&(MY_CORE_PRIV(p)->event_sigint), NULL);
+	if (my_core_event_add(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigint)) != 0) {
+		MY_ERROR("core: error installing INT signal handler");
+		goto _MY_ERR_add_event_sigint;
+	}
 
 	event_set(&(MY_CORE_PRIV(p)->event_sigquit), SIGQUIT, EV_SIGNAL, my_core_handle_shutdown, p);
-	event_base_set(MY_CORE_PRIV(p)->event_base, &(MY_CORE_PRIV(p)->event_sigquit));
-	event_add(&(MY_CORE_PRIV(p)->event_sigquit), NULL);
+	if (my_core_event_add(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigquit)) != 0) {
+		MY_ERROR("core: error installing QUIT signal handler");
+		goto _MY_ERR_add_event_sigquit;
+	}
 
 	event_set(&(MY_CORE_PRIV(p)->event_sigterm), SIGTERM, EV_SIGNAL, my_core_handle_shutdown, p);
-	event_base_set(MY_CORE_PRIV(p)->event_base, &(MY_CORE_PRIV(p)->event_sigterm));
-	event_add(&(MY_CORE_PRIV(p)->event_sigterm), NULL);
+	if (my_core_event_add(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigterm)) != 0 ) {
+		MY_ERROR("core: error installing TERM signal handler");
+		goto _MY_ERR_add_event_sigterm;
+	}
 
 	return MY_CORE(p);
 
+	my_core_event_del(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigterm));
+_MY_ERR_add_event_sigterm:
+	my_core_event_del(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigquit));
+_MY_ERR_add_event_sigquit:
+	my_core_event_del(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigint));
+_MY_ERR_add_event_sigint:
+	event_base_free(MY_CORE_PRIV(p)->event_base);
 _MY_ERR_event_base_new:
 _MY_ERR_event_init:
 	my_list_destroy(MY_CORE(p)->targets);
@@ -132,7 +145,14 @@ _MY_ERR_alloc:
 
 void my_core_destroy(my_core_t *core)
 {
+	my_control_close_all(core);
 	my_control_destroy_all(core);
+
+	my_core_event_del(MY_CORE(core), &(MY_CORE_PRIV(core)->event_sigint));
+	my_core_event_del(MY_CORE(core), &(MY_CORE_PRIV(core)->event_sigquit));
+	my_core_event_del(MY_CORE(core), &(MY_CORE_PRIV(core)->event_sigterm));
+
+	event_base_free(MY_CORE_PRIV(core)->event_base);
 
 	my_list_destroy(core->controls);
 	my_list_destroy(core->filters);
@@ -148,13 +168,20 @@ int my_core_init(my_core_t *core, my_conf_t *conf)
 	my_filter_register_all();
 	my_source_register_all();
 	my_target_register_all();
-	
+
 	if (my_control_create_all(core, conf) != 0) {
 		goto _MY_ERR_create_controls;
 	}
-	
+
+	if (my_control_open_all(core) != 0) {
+		goto _MY_ERR_open_controls;
+	}
+
 	return 0;
 
+	my_control_close_all(core);
+_MY_ERR_open_controls:
+	my_control_destroy_all(core);
 _MY_ERR_create_controls:
 	return -1;
 }
@@ -162,6 +189,27 @@ _MY_ERR_create_controls:
 void my_core_loop(my_core_t *core)
 {
 	event_base_dispatch(MY_CORE_PRIV(core)->event_base);
+}
+
+int my_core_event_add(my_core_t *core, struct event *event)
+{
+	if (event_base_set(MY_CORE_PRIV(core)->event_base, event) != 0) {
+		return -1;
+	}
+	if (event_add(event, NULL) != 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+int my_core_event_del(my_core_t *p, struct event *event)
+{
+	if (event_del(event) != 0) {
+		return -1;
+	}
+
+	return 0;
 }
 
 #ifdef MY_DEBUGGING

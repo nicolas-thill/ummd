@@ -23,6 +23,8 @@
 #ifndef __MY_CORE_H
 #define __MY_CORE_H
 
+#include <event.h>
+
 #include "autoconf.h"
 
 #include "conf.h"
@@ -43,6 +45,9 @@ extern void my_core_destroy(my_core_t *core);
 
 extern int my_core_init(my_core_t *core, my_conf_t *conf);
 extern void my_core_loop(my_core_t *core);
+
+extern int my_core_event_add(my_core_t *core, struct event *event);
+extern int my_core_event_del(my_core_t *core, struct event *event);
 
 #ifdef MY_DEBUGGING
 extern void my_core_dump(my_core_t *core);

@@ -27,5 +27,6 @@ extern void *my_mem_alloc(int n);
 extern void my_mem_free(void *p);
 
 extern void my_mem_zero(void *p, int n);
+extern void my_mem_copy(void *pt, void *ps, int n);
 
 #endif /* __MY_UTIL_MEM_H */

@@ -46,3 +46,8 @@ void my_mem_zero(void *p, int n)
 	memset(p, 0, n);
 }
 
+void my_mem_copy(void *pt, void *ps, int n)
+{
+	memcpy(pt, ps, n);
+}
+

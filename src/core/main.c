@@ -47,7 +47,6 @@ struct my_core_priv {
 	struct event event_sigterm;
 };
 
-#define MY_CORE(p) ((my_core_t *)p)
 #define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
 
 static void my_core_exit(my_core_t *core)

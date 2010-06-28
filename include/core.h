@@ -40,6 +40,8 @@ struct my_core {
 	my_list_t *targets;
 };
 
+#define MY_CORE(p) ((my_core_t *)(p))
+
 extern my_core_t *my_core_create(void);
 extern void my_core_destroy(my_core_t *core);
 

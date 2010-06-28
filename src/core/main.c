@@ -151,6 +151,8 @@ _MY_ERR_alloc:
 void my_core_destroy(my_core_t *core)
 {
 	my_control_close_all(core);
+
+	my_filter_destroy_all(core);
 	my_control_destroy_all(core);
 
 	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigint));
@@ -178,6 +180,10 @@ int my_core_init(my_core_t *core, my_conf_t *conf)
 		goto _MY_ERR_create_controls;
 	}
 
+	if (my_filter_create_all(core, conf) != 0) {
+		goto _MY_ERR_create_filters;
+	}
+
 	if (my_control_open_all(core) != 0) {
 		goto _MY_ERR_open_controls;
 	}
@@ -186,6 +192,8 @@ int my_core_init(my_core_t *core, my_conf_t *conf)
 
 	my_control_close_all(core);
 _MY_ERR_open_controls:
+	my_filter_destroy_all(core);
+_MY_ERR_create_filters:
 	my_control_destroy_all(core);
 _MY_ERR_create_controls:
 	return -1;

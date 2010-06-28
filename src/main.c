@@ -141,7 +141,11 @@ int main(int argc, char *argv[])
 	}
 
 	if (my_conf->log_level < 0) {
+#ifdef MY_DEBUGGING
+		my_conf->log_level = MY_LOG_DEBUG;
+#else
 		my_conf->log_level = MY_LOG_NOTICE;
+#endif
 	}
 
 	if (my_conf->pid_file == NULL) {

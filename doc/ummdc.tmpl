@@ -1,0 +1,109 @@
+#!/bin/sh
+
+#
+#  ummd ( Micro MultiMedia Daemon )
+#
+#  Copyright (C) 2010 Nicolas Thill <nicolas.thill@gmail.com>
+#
+
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 2
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License along
+#  with this program; if not, write to the Free Software Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+ME=${0##*/}
+MY_VERSION="$VERSION"
+
+MY_FIFO="$MY_RUN_DIR/ummd.fifo"
+
+my_usage() {
+cat << _END_OF_USAGE_
+Usage: $ME OPTIONS
+
+Options:
+	-h,--help      display program usage and exit
+	-V,--version   display program version and exit
+
+_END_OF_USAGE_
+}
+
+my_version() {
+cat << _END_OF_VERSION_
+$ME v$MY_VERSION, Copyright (C) 2010 Nicolas Thill <nicolas.thill@gmail.com>
+
+_END_OF_VERSION_
+}
+
+my_error() {
+	echo "$ME: $@" 1>&2
+	exit 1
+}
+
+while [ -n "$1" ]; do
+	case $1 in
+	  -h|--help)
+		my_usage
+		exit 0
+		;;
+	  -V|--version)
+		my_version
+		exit 0
+		;;
+	  *)
+		my_error "unknown option '$1'"
+		;;
+	esac
+	shift
+done
+
+if [ ! -e $MY_FIFO ]; then
+	my_error "file '$MY_FIFO' does not exist"
+fi
+
+my_cmd_help() {
+cat << _END_OF_HELP_
+#
+# local commands:
+#   help    display this help information
+#   quit    exit this program
+#
+# remote commands:
+#   /quit   quit remote server (and also exit this program)
+#
+_END_OF_HELP_
+}
+
+my_cmd_quit() {
+	exit 0;
+}
+
+my_cmd_send() {
+	echo "$@" >$MY_FIFO
+}
+
+while read -p '> ' cmd; do
+	case $cmd in
+	  /quit)
+		my_cmd_send $cmd
+		my_cmd_quit
+		;;
+	  help)
+	  	my_cmd_help
+	  	;;
+	  quit)
+		my_cmd_quit
+		;;
+	esac
+done
+echo

@@ -144,8 +144,8 @@ void my_control_register_all(void)
 /*
 	MY_CONTROL_REGISTER(osc);
 	MY_CONTROL_REGISTER(http);
-	MY_CONTROL_REGISTER(sock);
 */
+	MY_CONTROL_REGISTER(sock);
 }
 
 #ifdef MY_DEBUGGING

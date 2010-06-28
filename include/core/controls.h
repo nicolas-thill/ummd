@@ -30,10 +30,8 @@
 typedef enum {
 	MY_CONTROL_FIFO,
 	MY_CONTROL_OSC,
-/*
 	MY_CONTROL_HTTP,
 	MY_CONTROL_SOCK,
-*/
 } my_control_id_t;
 
 typedef struct my_control my_control_t;

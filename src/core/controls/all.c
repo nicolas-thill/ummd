@@ -111,6 +111,7 @@ static int my_control_close_fn(void *data, void *user, int flags)
 
 int my_control_create_all(my_core_t *core, my_conf_t *conf)
 {
+	MY_DEBUG("core/control: creating all controls");
 	return my_list_iter(conf->controls, my_control_create_fn, core);
 }
 
@@ -118,6 +119,7 @@ int my_control_destroy_all(my_core_t *core)
 {
 	my_control_t *control;
 
+	MY_DEBUG("core/control: destroying all controls");
 	while (control = my_list_dequeue(core->controls)) {
 		my_control_destroy(control);
 	}
@@ -125,11 +127,13 @@ int my_control_destroy_all(my_core_t *core)
 
 int my_control_open_all(my_core_t *core)
 {
+	MY_DEBUG("core/control: opening all controls");
 	return my_list_iter(core->controls, my_control_open_fn, core);
 }
 
 int my_control_close_all(my_core_t *core)
 {
+	MY_DEBUG("core/control: closing all controls");
 	return my_list_iter(core->controls, my_control_close_fn, core);
 }
 

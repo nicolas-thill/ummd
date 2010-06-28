@@ -27,8 +27,29 @@
 
 #include "core.h"
 
+typedef enum {
+	MY_TARGET_FILE,
+} my_target_id_t;
+
+typedef struct my_target my_target_t;
 typedef struct my_target_conf my_target_conf_t;
 typedef struct my_target_impl my_target_impl_t;
+
+typedef my_target_t *(*my_target_create_fn_t)(my_target_conf_t *conf);
+typedef void (*my_target_destroy_fn_t)(my_target_t *target);
+
+typedef int (*my_target_open_fn_t)(my_target_t *target);
+typedef int (*my_target_close_fn_t)(my_target_t *target);
+
+#define MY_TARGET(p) ((my_target_t *)(p))
+#define MY_TARGET_CONF(p) ((my_target_conf_t *)(p))
+#define MY_TARGET_IMPL(p) ((my_target_impl_t *)(p))
+
+struct my_target {
+	my_core_t *core;
+	my_target_conf_t *conf;
+	my_target_impl_t *impl;
+};
 
 struct my_target_conf {
 	int index;
@@ -42,8 +63,17 @@ struct my_target_impl {
 	int id;
 	char *name;
 	char *desc;
+	my_target_create_fn_t create;
+	my_target_destroy_fn_t destroy;
+	my_target_open_fn_t open;
+	my_target_close_fn_t close;
 };
 
+extern int my_target_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_target_destroy_all(my_core_t *core);
+
+extern int my_target_open_all(my_core_t *core);
+extern int my_target_close_all(my_core_t *core);
 
 extern void my_target_register_all(void);
 

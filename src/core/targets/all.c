@@ -34,6 +34,109 @@ static my_list_t my_targets;
 	my_target_register(&my_target_##x); \
 }
 
+static my_target_impl_t *my_target_find_impl(char *name)
+{
+	my_target_impl_t *impl;
+	my_node_t *node;
+
+	for (node = my_targets.head; node; node = node->next) {
+		impl = (my_target_impl_t *)(node->data);
+		if (strcmp(impl->name, name) == 0) {
+			return impl;
+		}
+	}
+
+	return NULL;
+}
+
+static my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf)
+{
+	my_target_t *target;
+	my_target_impl_t *impl;
+	
+	impl = my_target_find_impl(conf->type);
+	if (!impl) {
+		my_log(MY_LOG_ERROR, "core/target: unknown type '%s' for target #%d '%s'", conf->type, conf->index, conf->name);
+		return NULL;
+	}
+	target = impl->create(conf);
+	if (!target) {
+		my_log(MY_LOG_ERROR, "core/target: error creating target #%d '%s'", conf->index, conf->name);
+		return NULL;
+	}
+
+	target->core = core;
+	target->conf = conf;
+	target->impl = impl;
+
+	return target;
+}
+
+static void my_target_destroy(my_target_t *target)
+{
+	target->impl->destroy(target);
+}
+
+static int my_target_create_fn(void *data, void *user, int flags)
+{
+	my_core_t *core = MY_CORE(user);
+	my_target_t *target;
+	my_target_conf_t *conf = MY_TARGET_CONF(data);
+
+	target = my_target_create(core, conf);
+	if (target) {
+		my_list_enqueue(core->targets, target);
+	}
+
+	return 0;
+}
+
+static int my_target_open_fn(void *data, void *user, int flags)
+{
+	my_target_t *target = MY_TARGET(data);
+
+	target->impl->open(target);
+
+	return 0;
+}
+
+static int my_target_close_fn(void *data, void *user, int flags)
+{
+	my_target_t *target = MY_TARGET(data);
+
+	target->impl->close(target);
+
+	return 0;
+}
+
+int my_target_create_all(my_core_t *core, my_conf_t *conf)
+{
+	MY_DEBUG("core/target: creating all targets");
+	return my_list_iter(conf->targets, my_target_create_fn, core);
+}
+
+int my_target_destroy_all(my_core_t *core)
+{
+	my_target_t *target;
+
+	MY_DEBUG("core/target: destroying all targets");
+	while (target = my_list_dequeue(core->targets)) {
+		my_target_destroy(target);
+	}
+}
+
+int my_target_open_all(my_core_t *core)
+{
+	MY_DEBUG("core/target: opening all targets");
+	return my_list_iter(core->targets, my_target_open_fn, core);
+}
+
+int my_target_close_all(my_core_t *core)
+{
+	MY_DEBUG("core/target: closing all targets");
+	return my_list_iter(core->targets, my_target_close_fn, core);
+}
+
 static void my_target_register(my_core_t *core, my_target_impl_t *target)
 {
 	my_list_enqueue(&my_targets, target);
@@ -54,11 +157,11 @@ void my_target_register_all(void)
 
 static int my_target_dump_fn(void *data, void *user, int flags)
 {
-	my_target_impl_t *target = (my_target_impl_t *)data;
+	my_target_impl_t *impl = MY_TARGET_IMPL(data);
 
 	MY_DEBUG("\t{");
-	MY_DEBUG("\t\tname=\"%s\";", target->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", target->desc);
+	MY_DEBUG("\t\tname=\"%s\";", impl->name);
+	MY_DEBUG("\t\tdescription=\"%s\";", impl->desc);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;

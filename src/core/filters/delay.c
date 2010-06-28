@@ -59,7 +59,7 @@ static void my_filter_delay_destroy(my_filter_t *filter)
 }
 
 my_filter_impl_t my_filter_delay = {
-	.id = 1,
+	.id = MY_FILTER_DELAY,
 	.name = "delay",
 	.desc = "Delay filter",
 	.create = my_filter_delay_create,

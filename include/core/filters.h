@@ -27,6 +27,10 @@
 
 #include "core.h"
 
+typedef enum {
+	MY_FILTER_DELAY,
+} my_filter_id_t;
+
 typedef struct my_filter my_filter_t;
 typedef struct my_filter_conf my_filter_conf_t;
 typedef struct my_filter_impl my_filter_impl_t;
@@ -53,7 +57,7 @@ struct my_filter_conf {
 };
 
 struct my_filter_impl {
-	int id;
+	my_filter_id_t id;
 	char *name;
 	char *desc;
 	my_filter_create_fn_t create;

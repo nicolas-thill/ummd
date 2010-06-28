@@ -92,6 +92,12 @@ my_cmd_send() {
 	echo "$@" >$MY_FIFO
 }
 
+my_cmd_error() {
+cat << _END_OF_ERROR_
+# unknown command '$@' (try 'help')
+_END_OF_ERROR_
+}
+
 while read -p '> ' cmd; do
 	case $cmd in
 	  /quit)
@@ -99,10 +105,13 @@ while read -p '> ' cmd; do
 		my_cmd_quit
 		;;
 	  help)
-	  	my_cmd_help
-	  	;;
+		my_cmd_help
+		;;
 	  quit)
 		my_cmd_quit
+		;;
+	  *)
+		my_cmd_error $cmd
 		;;
 	esac
 done

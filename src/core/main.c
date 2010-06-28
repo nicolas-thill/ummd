@@ -50,42 +50,47 @@ struct my_core_priv {
 #define MY_CORE(p) ((my_core_t *)p)
 #define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
 
+static void my_core_exit(my_core_t *core)
+{
+	event_base_loopexit(MY_CORE_PRIV(core)->event_base, NULL);
+}
+
 static void my_core_handle_shutdown(int sig, short event, void *p)
 {
 	my_log(MY_LOG_NOTICE, "core: received signal %d" , sig);
-	event_base_loopexit(MY_CORE_PRIV(p)->event_base, NULL);
+	my_core_exit(MY_CORE(p));
 }
 
 my_core_t *my_core_create(void)
 {
-	void *p;
+	my_core_t *core;
 
-	p = my_mem_alloc(sizeof(my_core_priv_t));
-	if (!p) {
+	core = my_mem_alloc(sizeof(my_core_priv_t));
+	if (!core) {
 		MY_ERROR("core: error creating internal data (%s)" , strerror(errno));
 		goto _MY_ERR_alloc;
 	}
 	
-	MY_CORE(p)->controls = my_list_create();
-	if (MY_CORE(p)->controls == NULL) {
+	core->controls = my_list_create();
+	if (core->controls == NULL) {
 		MY_ERROR("core: error creating control list (%s)" , strerror(errno));
 		goto _MY_ERR_create_controls;
 	}
 
-	MY_CORE(p)->filters = my_list_create();
-	if (MY_CORE(p)->filters == NULL) {
+	core->filters = my_list_create();
+	if (core->filters == NULL) {
 		MY_ERROR("core: error creating filter list (%s)" , strerror(errno));
 		goto _MY_ERR_create_filters;
 	}
 
-	MY_CORE(p)->sources = my_list_create();
-	if (MY_CORE(p)->sources == NULL) {
+	core->sources = my_list_create();
+	if (core->sources == NULL) {
 		MY_ERROR("core: error creating source list (%s)" , strerror(errno));
 		goto _MY_ERR_create_sources;
 	}
 
-	MY_CORE(p)->targets = my_list_create();
-	if (MY_CORE(p)->targets == NULL) {
+	core->targets = my_list_create();
+	if (core->targets == NULL) {
 		MY_ERROR("core: error creating target list (%s)" , strerror(errno));
 		goto _MY_ERR_create_targets;
 	}
@@ -95,50 +100,50 @@ my_core_t *my_core_create(void)
 		goto _MY_ERR_event_init;
 	}
 	
-	MY_CORE_PRIV(p)->event_base = event_base_new();
-	if (MY_CORE_PRIV(p)->event_base == NULL) {
+	MY_CORE_PRIV(core)->event_base = event_base_new();
+	if (MY_CORE_PRIV(core)->event_base == NULL) {
 		MY_ERROR("core: error initializing event handling library");
 		goto _MY_ERR_event_base_new;
 	}
 
-	event_set(&(MY_CORE_PRIV(p)->event_sigint), SIGINT, EV_SIGNAL, my_core_handle_shutdown, p);
-	if (my_core_event_add(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigint)) != 0) {
+	event_set(&(MY_CORE_PRIV(core)->event_sigint), SIGINT, EV_SIGNAL, my_core_handle_shutdown, core);
+	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigint)) != 0) {
 		MY_ERROR("core: error installing INT signal handler");
 		goto _MY_ERR_add_event_sigint;
 	}
 
-	event_set(&(MY_CORE_PRIV(p)->event_sigquit), SIGQUIT, EV_SIGNAL, my_core_handle_shutdown, p);
-	if (my_core_event_add(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigquit)) != 0) {
+	event_set(&(MY_CORE_PRIV(core)->event_sigquit), SIGQUIT, EV_SIGNAL, my_core_handle_shutdown, core);
+	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigquit)) != 0) {
 		MY_ERROR("core: error installing QUIT signal handler");
 		goto _MY_ERR_add_event_sigquit;
 	}
 
-	event_set(&(MY_CORE_PRIV(p)->event_sigterm), SIGTERM, EV_SIGNAL, my_core_handle_shutdown, p);
-	if (my_core_event_add(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigterm)) != 0 ) {
+	event_set(&(MY_CORE_PRIV(core)->event_sigterm), SIGTERM, EV_SIGNAL, my_core_handle_shutdown, core);
+	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigterm)) != 0 ) {
 		MY_ERROR("core: error installing TERM signal handler");
 		goto _MY_ERR_add_event_sigterm;
 	}
 
-	return MY_CORE(p);
+	return core;
 
-	my_core_event_del(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigterm));
+	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigterm));
 _MY_ERR_add_event_sigterm:
-	my_core_event_del(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigquit));
+	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigquit));
 _MY_ERR_add_event_sigquit:
-	my_core_event_del(MY_CORE(p), &(MY_CORE_PRIV(p)->event_sigint));
+	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigint));
 _MY_ERR_add_event_sigint:
-	event_base_free(MY_CORE_PRIV(p)->event_base);
+	event_base_free(MY_CORE_PRIV(core)->event_base);
 _MY_ERR_event_base_new:
 _MY_ERR_event_init:
-	my_list_destroy(MY_CORE(p)->targets);
+	my_list_destroy(core->targets);
 _MY_ERR_create_targets:
-	my_list_destroy(MY_CORE(p)->sources);
+	my_list_destroy(core->sources);
 _MY_ERR_create_sources:
-	my_list_destroy(MY_CORE(p)->filters);
+	my_list_destroy(core->filters);
 _MY_ERR_create_filters:
-	my_list_destroy(MY_CORE(p)->controls);
+	my_list_destroy(core->controls);
 _MY_ERR_create_controls:
-	my_mem_free(p);
+	my_mem_free(core);
 _MY_ERR_alloc:
 	return NULL;
 }
@@ -148,9 +153,9 @@ void my_core_destroy(my_core_t *core)
 	my_control_close_all(core);
 	my_control_destroy_all(core);
 
-	my_core_event_del(MY_CORE(core), &(MY_CORE_PRIV(core)->event_sigint));
-	my_core_event_del(MY_CORE(core), &(MY_CORE_PRIV(core)->event_sigquit));
-	my_core_event_del(MY_CORE(core), &(MY_CORE_PRIV(core)->event_sigterm));
+	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigint));
+	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigquit));
+	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigterm));
 
 	event_base_free(MY_CORE_PRIV(core)->event_base);
 
@@ -216,7 +221,7 @@ int my_core_handle_command(my_core_t *core, char *command)
 {
 	if (strcmp(command, "/quit") == 0) {
 		my_log(MY_LOG_NOTICE, "core: received '%s' command", command);
-		event_base_loopexit(MY_CORE_PRIV(core)->event_base, NULL);
+		my_core_exit(core);
 	} else {
 		my_log(MY_LOG_ERROR, "core: unknown command '%s'", command);
 	}

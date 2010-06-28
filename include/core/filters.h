@@ -28,6 +28,7 @@
 #include "core.h"
 
 typedef enum {
+	MY_FILTER_NULL,
 	MY_FILTER_DELAY,
 } my_filter_id_t;
 

@@ -49,7 +49,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libfilters_la_LIBADD =
-am_libfilters_la_OBJECTS = all.lo delay.lo
+am_libfilters_la_OBJECTS = all.lo delay.lo null.lo
 libfilters_la_OBJECTS = $(am_libfilters_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/autotools/depcomp
@@ -204,7 +204,8 @@ top_srcdir = @top_srcdir@
 noinst_LTLIBRARIES = libfilters.la
 libfilters_la_SOURCES = \
 	all.c \
-	delay.c
+	delay.c \
+	null.c
 
 all: all-am
 
@@ -260,6 +261,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/all.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delay.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/null.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

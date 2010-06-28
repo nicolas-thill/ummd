@@ -6,4 +6,5 @@ noinst_LTLIBRARIES = libfilters.la
 
 libfilters_la_SOURCES = \
 	all.c \
-	delay.c
+	delay.c \
+	null.c

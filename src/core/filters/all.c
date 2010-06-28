@@ -114,6 +114,7 @@ static void my_filter_register(my_filter_impl_t *filter)
 
 void my_filter_register_all(void)
 {
+	MY_FILTER_REGISTER(null);
 	MY_FILTER_REGISTER(delay);
 }
 

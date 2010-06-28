@@ -59,7 +59,7 @@ static my_node_t *my_list_remove_head(my_list_t *list)
 	if (node) {
 		if (node->next) {
 			node->next->prev = NULL;
-			list->head = node;
+			list->head = node->next;
 		} else {
 			list->head = list->tail = NULL;
 		}
@@ -75,7 +75,7 @@ static my_node_t *my_list_remove_tail(my_list_t *list)
 	if (node) {
 		if (node->prev) {
 			node->prev->next = NULL;
-			list->tail = node;
+			list->tail = node->prev;
 		} else {
 			list->tail = list->head = NULL;
 		}

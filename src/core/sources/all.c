@@ -34,7 +34,7 @@ static my_list_t my_sources;
 	my_source_register(&my_source_##x); \
 }
 
-void my_source_register(my_source_impl_t *source)
+static void my_source_register(my_source_impl_t *source)
 {
 	my_list_enqueue(&my_sources, source);
 }

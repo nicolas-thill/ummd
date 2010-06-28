@@ -34,7 +34,7 @@ static my_list_t my_targets;
 	my_target_register(&my_target_##x); \
 }
 
-void my_target_register(my_core_t *core, my_target_impl_t *target)
+static void my_target_register(my_core_t *core, my_target_impl_t *target)
 {
 	my_list_enqueue(&my_targets, target);
 }

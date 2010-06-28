@@ -149,8 +149,10 @@ _MY_ERR_alloc:
 
 void my_core_destroy(my_core_t *core)
 {
+	my_source_close_all(core);
 	my_control_close_all(core);
 
+	my_source_destroy_all(core);
 	my_filter_destroy_all(core);
 	my_control_destroy_all(core);
 
@@ -183,14 +185,26 @@ int my_core_init(my_core_t *core, my_conf_t *conf)
 		goto _MY_ERR_create_filters;
 	}
 
+	if (my_source_create_all(core, conf) != 0) {
+		goto _MY_ERR_create_sources;
+	}
+
 	if (my_control_open_all(core) != 0) {
 		goto _MY_ERR_open_controls;
 	}
 
+	if (my_source_open_all(core) != 0) {
+		goto _MY_ERR_open_sources;
+	}
+
 	return 0;
 
+	my_source_close_all(core);
+_MY_ERR_open_sources:
 	my_control_close_all(core);
 _MY_ERR_open_controls:
+	my_source_destroy_all(core);
+_MY_ERR_create_sources:
 	my_filter_destroy_all(core);
 _MY_ERR_create_filters:
 	my_control_destroy_all(core);

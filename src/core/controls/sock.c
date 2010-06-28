@@ -114,13 +114,11 @@ static int my_control_sock_close(my_control_t *control)
 	MY_DEBUG("core/control/sock: closing unix socket '%s'", MY_CONTROL_PRIV(control)->path);
 	if (close(MY_CONTROL_PRIV(control)->sock) == -1) {
 		my_log(MY_LOG_ERROR, "core/control/sock: error closing unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
-		return -1;
 	}
 
 	MY_DEBUG("core/control/fifo: removing unix socket '%s'", MY_CONTROL_PRIV(control)->path);
 	if (unlink(MY_CONTROL_PRIV(control)->path) == -1) {
 		my_log(MY_LOG_ERROR, "core/control/fifo: error removing unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
-		return -1;
 	}
 
 	return 0;

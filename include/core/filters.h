@@ -27,8 +27,22 @@
 
 #include "core.h"
 
+typedef struct my_filter my_filter_t;
 typedef struct my_filter_conf my_filter_conf_t;
 typedef struct my_filter_impl my_filter_impl_t;
+
+typedef my_filter_t *(*my_filter_create_fn_t)(my_filter_conf_t *conf);
+typedef void (*my_filter_destroy_fn_t)(my_filter_t *filter);
+
+#define MY_FILTER(p) ((my_filter_t *)(p))
+#define MY_FILTER_CONF(p) ((my_filter_t *)(p)->conf)
+#define MY_FILTER_IMPL(p) ((my_filter_t *)(p)->impl)
+
+struct my_filter {
+	my_core_t *core;
+	my_filter_conf_t *conf;
+	my_filter_impl_t *impl;
+};
 
 struct my_filter_conf {
 	int index;
@@ -42,8 +56,12 @@ struct my_filter_impl {
 	int id;
 	char *name;
 	char *desc;
+	my_filter_create_fn_t create;
+	my_filter_destroy_fn_t destroy;
 };
 
+extern int my_filter_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_filter_destroy_all(my_core_t *core);
 
 extern void my_filter_register_all(void);
 

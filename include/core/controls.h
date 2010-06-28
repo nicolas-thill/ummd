@@ -45,8 +45,8 @@ typedef int (*my_control_open_fn_t)(my_control_t *control);
 typedef int (*my_control_close_fn_t)(my_control_t *control);
 
 #define MY_CONTROL(p) ((my_control_t *)(p))
-#define MY_CONTROL_CONF(p) ((my_control_t *)(p)->conf)
-#define MY_CONTROL_IMPL(p) ((my_control_t *)(p)->impl)
+#define MY_CONTROL_CONF(p) ((my_control_conf_t *)(p))
+#define MY_CONTROL_IMPL(p) ((my_control_impl_t *)(p))
 
 struct my_control {
 	my_core_t *core;

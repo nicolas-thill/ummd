@@ -79,9 +79,9 @@ static void my_control_destroy(my_control_t *control)
 
 static int my_control_create_fn(void *data, void *user, int flags)
 {
-	my_control_conf_t *conf = (my_control_conf_t *)data;
-	my_core_t *core = (my_core_t *)user;
+	my_core_t *core = MY_CORE(user);
 	my_control_t *control;
+	my_control_conf_t *conf = MY_CONTROL_CONF(data);
 
 	control = my_control_create(core, conf);
 	if (control) {
@@ -93,7 +93,7 @@ static int my_control_create_fn(void *data, void *user, int flags)
 
 static int my_control_open_fn(void *data, void *user, int flags)
 {
-	my_control_t *control = (my_control_t *)data;
+	my_control_t *control = MY_CONTROL(data);
 
 	control->impl->open(control);
 
@@ -102,7 +102,7 @@ static int my_control_open_fn(void *data, void *user, int flags)
 
 static int my_control_close_fn(void *data, void *user, int flags)
 {
-	my_control_t *control = (my_control_t *)data;
+	my_control_t *control = MY_CONTROL(data);
 
 	control->impl->close(control);
 
@@ -156,7 +156,7 @@ void my_control_register_all(void)
 
 static int my_control_dump_fn(void *data, void *user, int flags)
 {
-	my_control_impl_t *impl = (my_control_impl_t *)data;
+	my_control_impl_t *impl = MY_CONTROL_IMPL(data);
 
 	MY_DEBUG("\t{");
 	MY_DEBUG("\t\tname=\"%s\";", impl->name);

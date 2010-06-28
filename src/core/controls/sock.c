@@ -27,6 +27,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <libavformat/avformat.h>
+
 #include "core/controls.h"
 
 #include "util/log.h"
@@ -45,30 +47,38 @@ struct my_control_priv {
 static my_control_t *my_control_sock_create(my_control_conf_t *conf)
 {
 	my_control_t *control;
-	char *p;
-	int n;
+	char url_prot[5];
+	char url_path[255];
 
 	control = my_mem_alloc(sizeof(my_control_priv_t));
 	if (!control) {
 		goto _MY_ERR_alloc;
 	}
 
-	p = strchr(conf->url, ':');
-	if (p) {
-		n = p - conf->url;
-		if ((strncmp(conf->url, "file", n) != 0) && (strncmp(conf->url, "sock", n) != 0)) {
-			my_log(MY_LOG_ERROR, "core/control/sock: unknown method '%.2$*1$s' in url '%$1s'", conf->url, n);
+	url_split(
+		url_prot, sizeof(url_prot),
+		NULL, 0, /* auth */
+		NULL, 0, /* hostname */
+		NULL, /* port */
+		url_path, sizeof(url_path),
+		conf->url
+	);
+	if (strlen(url_prot) > 0) {
+		if ((strcmp(url_prot, "file") != 0) && (strcmp(url_prot, "sock") != 0)) {
+			my_log(MY_LOG_ERROR, "core/control: unknown url protocol '%s' in '%s'", url_prot, conf->url);
 			goto _MY_ERR_parse_url;
 		}
-		p++;
-	} else {
-		p = conf->url;
+	}
+	if (strlen(url_path) == 0) {
+		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", conf->url);
+		goto _MY_ERR_parse_url;
 	}
 
-	MY_CONTROL_PRIV(control)->path = p;
+	MY_CONTROL_PRIV(control)->path = strdup(url_path);
 
 	return control;
 
+	free(MY_CONTROL_PRIV(control)->path);
 _MY_ERR_parse_url:
 	my_mem_free(control);
 _MY_ERR_alloc:
@@ -77,6 +87,7 @@ _MY_ERR_alloc:
 
 static void my_control_sock_destroy(my_control_t *control)
 {
+	free(MY_CONTROL_PRIV(control)->path);
 	my_mem_free(control);
 }
 
@@ -84,10 +95,10 @@ static int my_control_sock_open(my_control_t *control)
 {
 	struct sockaddr_un sa;
 
-	MY_DEBUG("core/control/sock: creating unix socket '%s'", MY_CONTROL_PRIV(control)->path);
+	MY_DEBUG("core/control: creating unix socket '%s'", MY_CONTROL_PRIV(control)->path);
 	MY_CONTROL_PRIV(control)->sock = socket(AF_UNIX, SOCK_DGRAM, 0);
 	if (MY_CONTROL_PRIV(control)->sock == -1) {
-		my_log(MY_LOG_ERROR, "core/control/sock: error creating socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control: error creating socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
 		goto _MY_ERR_create_sock;
 	}
 
@@ -95,9 +106,9 @@ static int my_control_sock_open(my_control_t *control)
 	sa.sun_family = AF_UNIX;
 	strncpy(sa.sun_path, MY_CONTROL_PRIV(control)->path, sizeof(sa.sun_path));
 	
-	MY_DEBUG("core/control/sock: binding unix socket '%s'", MY_CONTROL_PRIV(control)->path);
+	MY_DEBUG("core/control: binding unix socket '%s'", MY_CONTROL_PRIV(control)->path);
 	if (bind(MY_CONTROL_PRIV(control)->sock, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
-		my_log(MY_LOG_ERROR, "core/control/sock: error binding unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control: error binding unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
 		goto _MY_ERR_bind_sock;
 	}
 
@@ -111,14 +122,14 @@ _MY_ERR_create_sock:
 
 static int my_control_sock_close(my_control_t *control)
 {
-	MY_DEBUG("core/control/sock: closing unix socket '%s'", MY_CONTROL_PRIV(control)->path);
+	MY_DEBUG("core/control: closing unix socket '%s'", MY_CONTROL_PRIV(control)->path);
 	if (close(MY_CONTROL_PRIV(control)->sock) == -1) {
-		my_log(MY_LOG_ERROR, "core/control/sock: error closing unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control: error closing unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
 	}
 
-	MY_DEBUG("core/control/fifo: removing unix socket '%s'", MY_CONTROL_PRIV(control)->path);
+	MY_DEBUG("core/control: removing unix socket '%s'", MY_CONTROL_PRIV(control)->path);
 	if (unlink(MY_CONTROL_PRIV(control)->path) == -1) {
-		my_log(MY_LOG_ERROR, "core/control/fifo: error removing unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control: error removing unix socket '%s' (%s)", MY_CONTROL_PRIV(control)->path, strerror(errno));
 	}
 
 	return 0;

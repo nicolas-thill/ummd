@@ -79,9 +79,9 @@ static void my_filter_destroy(my_filter_t *filter)
 
 static int my_filter_create_fn(void *data, void *user, int flags)
 {
-	my_filter_conf_t *conf = (my_filter_conf_t *)data;
-	my_core_t *core = (my_core_t *)user;
+	my_core_t *core = MY_CORE(user);
 	my_filter_t *filter;
+	my_filter_conf_t *conf = MY_FILTER_CONF(data);
 
 	filter = my_filter_create(core, conf);
 	if (filter) {
@@ -122,11 +122,11 @@ void my_filter_register_all(void)
 
 static int my_filter_dump_fn(void *data, void *user, int flags)
 {
-	my_filter_impl_t *filter = (my_filter_impl_t *)data;
+	my_filter_impl_t *impl = MY_FILTER_IMPL(data);
 
 	MY_DEBUG("\t{");
-	MY_DEBUG("\t\tname=\"%s\";", filter->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", filter->desc);
+	MY_DEBUG("\t\tname=\"%s\";", impl->name);
+	MY_DEBUG("\t\tdescription=\"%s\";", impl->desc);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;

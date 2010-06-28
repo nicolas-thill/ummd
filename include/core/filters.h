@@ -40,8 +40,8 @@ typedef my_filter_t *(*my_filter_create_fn_t)(my_filter_conf_t *conf);
 typedef void (*my_filter_destroy_fn_t)(my_filter_t *filter);
 
 #define MY_FILTER(p) ((my_filter_t *)(p))
-#define MY_FILTER_CONF(p) ((my_filter_t *)(p)->conf)
-#define MY_FILTER_IMPL(p) ((my_filter_t *)(p)->impl)
+#define MY_FILTER_CONF(p) ((my_filter_conf_t *)(p))
+#define MY_FILTER_IMPL(p) ((my_filter_impl_t *)(p))
 
 struct my_filter {
 	my_core_t *core;

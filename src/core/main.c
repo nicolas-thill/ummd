@@ -212,6 +212,16 @@ int my_core_event_del(my_core_t *p, struct event *event)
 	return 0;
 }
 
+int my_core_handle_command(my_core_t *core, char *command)
+{
+	if (strcmp(command, "/quit") == 0) {
+		my_log(MY_LOG_NOTICE, "core: received '%s' command", command);
+		event_base_loopexit(MY_CORE_PRIV(core)->event_base, NULL);
+	} else {
+		my_log(MY_LOG_ERROR, "core: unknown command '%s'", command);
+	}
+}
+
 #ifdef MY_DEBUGGING
 
 void my_core_dump(my_core_t *core)

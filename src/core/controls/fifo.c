@@ -46,7 +46,7 @@ struct my_control_priv {
 
 #define MY_CONTROL_PRIV(p) ((my_control_priv_t *)(p))
 
-#define MY_CONTROL_BUF_SIZE  1024
+#define MY_CONTROL_BUF_SIZE  255
 
 static void my_control_fifo_event_handler(int fd, short event, void *p)
 {
@@ -63,7 +63,8 @@ static void my_control_fifo_event_handler(int fd, short event, void *p)
 		if (buf[n - 1] == '\n') {
 			buf[n - 1] = '\0';
 		}
-		my_log(MY_LOG_ERROR, "core/control/fifo: received '%s' from fifo '%s'", buf, MY_CONTROL_PRIV(control)->path);
+		my_log(MY_LOG_DEBUG, "core/control/fifo: received '%s' from fifo '%s'", buf, MY_CONTROL_PRIV(control)->path);
+		my_core_handle_command(control->core, buf);
 	}
 }
 

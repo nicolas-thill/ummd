@@ -49,6 +49,8 @@ extern void my_core_loop(my_core_t *core);
 extern int my_core_event_add(my_core_t *core, struct event *event);
 extern int my_core_event_del(my_core_t *core, struct event *event);
 
+extern int my_core_handle_command(my_core_t *core, char *command);
+
 #ifdef MY_DEBUGGING
 extern void my_core_dump(my_core_t *core);
 #endif

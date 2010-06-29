@@ -34,17 +34,25 @@ static my_list_t my_filters;
 	my_filter_register(&my_filter_##x); \
 }
 
-static my_filter_impl_t *my_filter_find_impl(char *name)
+static my_filter_impl_t *my_filter_find_impl(my_filter_conf_t *conf)
 {
 	my_filter_impl_t *impl;
 	my_node_t *node;
+	char *impl_name;
+
+	impl_name = conf->type;
+	if (!impl_name) {
+		impl_name = "null";
+	}
 
 	for (node = my_filters.head; node; node = node->next) {
-		impl = (my_filter_impl_t *)(node->data);
-		if (strcmp(impl->name, name) == 0) {
+		impl = MY_FILTER_IMPL(node->data);
+		if (strcmp(impl->name, impl_name) == 0) {
 			return impl;
 		}
 	}
+
+	my_log(MY_LOG_ERROR, "core/filter: unknown type '%s' for filter #%d '%s'", impl_name, conf->index, conf->name);
 
 	return NULL;
 }
@@ -54,14 +62,13 @@ static my_filter_t *my_filter_create(my_core_t *core, my_filter_conf_t *conf)
 	my_filter_t *filter;
 	my_filter_impl_t *impl;
 	
-	impl = my_filter_find_impl(conf->type);
+	impl = my_filter_find_impl(conf);
 	if (!impl) {
-		my_log(MY_LOG_ERROR, "core/filter: unknown filter '%s' for filter #%d '%s'", conf->type, conf->index, conf->name);
 		return NULL;
 	}
 	filter = impl->create(conf);
 	if (!filter) {
-		my_log(MY_LOG_ERROR, "core/filter: error creating filter '%s'", conf->name);
+		my_log(MY_LOG_ERROR, "core/filter: error creating filter #%d '%s'", conf->index, conf->name);
 		return NULL;
 	}
 

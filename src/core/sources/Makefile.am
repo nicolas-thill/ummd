@@ -5,4 +5,5 @@
 noinst_LTLIBRARIES = libsources.la
 
 libsources_la_SOURCES = \
-	all.c
+	all.c \
+	file.c

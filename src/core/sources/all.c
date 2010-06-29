@@ -176,8 +176,8 @@ static void my_source_register(my_source_impl_t *source)
 
 void my_source_register_all(void)
 {
-/*
 	MY_SOURCE_REGISTER(file);
+/*
 	MY_SOURCE_REGISTER(sock);
 	MY_SOURCE_REGISTER(http_client);
 	MY_SOURCE_REGISTER(rtp_client);

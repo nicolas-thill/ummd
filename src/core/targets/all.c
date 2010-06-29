@@ -176,11 +176,11 @@ static void my_target_register(my_core_t *core, my_target_impl_t *target)
 void my_target_register_all(void)
 {
 /*
-	MY_TARGET_REGISTER(core, file);
-	MY_TARGET_REGISTER(core, sock);
-	MY_TARGET_REGISTER(core, net_http_client);
-	MY_TARGET_REGISTER(core, net_rtp_client);
-	MY_TARGET_REGISTER(core, net_udp_client);
+	MY_TARGET_REGISTER(file);
+	MY_TARGET_REGISTER(sock);
+	MY_TARGET_REGISTER(http_client);
+	MY_TARGET_REGISTER(rtp_client);
+	MY_TARGET_REGISTER(udp_client);
 */
 }
 

@@ -34,17 +34,33 @@ static my_list_t my_controls;
 	my_control_register(&my_control_##x); \
 }
 
-static my_control_impl_t *my_control_find_impl(char *name)
+static my_control_impl_t *my_control_find_impl(my_control_conf_t *conf)
 {
 	my_control_impl_t *impl;
 	my_node_t *node;
+	char *impl_name;
+	char url_prot[10];
 
+	impl_name = conf->type;
+	if (!impl_name) {
+		url_split(
+			url_prot, sizeof(url_prot),
+			NULL, 0, /* auth */
+			NULL, 0, /* hostname */
+			NULL,    /* port */
+			NULL, 0, /* path */
+			conf->url
+		);
+		impl_name = url_prot;
+	}
 	for (node = my_controls.head; node; node = node->next) {
-		impl = (my_control_impl_t *)(node->data);
-		if (strcmp(impl->name, name) == 0) {
+		impl = MY_CONTROL_IMPL(node->data);
+		if (strcmp(impl->name, impl_name) == 0) {
 			return impl;
 		}
 	}
+
+	my_log(MY_LOG_ERROR, "core/control: unknown type '%s' for control #%d '%s'", impl_name, conf->index, conf->name);
 
 	return NULL;
 }
@@ -54,14 +70,13 @@ static my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
 	my_control_t *control;
 	my_control_impl_t *impl;
 	
-	impl = my_control_find_impl(conf->type);
+	impl = my_control_find_impl(conf);
 	if (!impl) {
-		my_log(MY_LOG_ERROR, "core/control: unknown control interface '%s' for control #%d '%s'", conf->type, conf->index, conf->name);
 		return NULL;
 	}
 	control = impl->create(conf);
 	if (!control) {
-		my_log(MY_LOG_ERROR, "core/control: error creating control '%s'", conf->name);
+		my_log(MY_LOG_ERROR, "core/control: error creating control #%d '%s'", conf->index, conf->name);
 		return NULL;
 	}
 

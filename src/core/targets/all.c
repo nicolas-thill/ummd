@@ -34,17 +34,49 @@ static my_list_t my_targets;
 	my_target_register(&my_target_##x); \
 }
 
-static my_target_impl_t *my_target_find_impl(char *name)
+static my_target_impl_t *my_target_find_impl(my_target_conf_t *conf)
 {
 	my_target_impl_t *impl;
 	my_node_t *node;
+	char *impl_name;
+	char *conf_type;
+	char url_prot[10];
+	char url_host[255];
+	char buf[255];
+
+	impl_name = "file";
+	url_split(
+		url_prot, sizeof(url_prot),
+		NULL, 0, /* auth */
+		url_host, sizeof(url_host),
+		NULL,    /* port */
+		NULL, 0, /* path */
+		conf->url
+	);
+	if (strlen(url_host) > 0) {
+		if (strlen(url_prot) == 0) {
+			strncpy(url_prot, sizeof(url_prot), "udp");
+		}
+		conf_type = conf->type;
+		if (!conf_type) {
+			conf_type = "client";
+		}
+		snprintf(buf, sizeof(buf), "%s-%s", url_prot, conf_type);
+		impl_name = buf;
+	} else {
+		if (strlen(url_prot) > 0) {
+			impl_name = url_prot;
+		}
+	}
 
 	for (node = my_targets.head; node; node = node->next) {
-		impl = (my_target_impl_t *)(node->data);
-		if (strcmp(impl->name, name) == 0) {
+		impl = MY_TARGET_IMPL(node->data);
+		if (strcmp(impl->name, impl_name) == 0) {
 			return impl;
 		}
 	}
+
+	my_log(MY_LOG_ERROR, "core/target: unknown type '%s' for target #%d '%s'", impl_name, conf->index, conf->name);
 
 	return NULL;
 }
@@ -54,9 +86,8 @@ static my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf)
 	my_target_t *target;
 	my_target_impl_t *impl;
 	
-	impl = my_target_find_impl(conf->type);
+	impl = my_target_find_impl(conf);
 	if (!impl) {
-		my_log(MY_LOG_ERROR, "core/target: unknown type '%s' for target #%d '%s'", conf->type, conf->index, conf->name);
 		return NULL;
 	}
 	target = impl->create(conf);

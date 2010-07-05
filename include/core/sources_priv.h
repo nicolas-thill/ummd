@@ -28,7 +28,7 @@
 typedef struct my_source_impl_s my_source_impl_t;
 typedef struct my_source_priv_s my_source_priv_t;
 
-typedef my_source_t *(*my_source_create_fn_t)(my_source_conf_t *conf);
+typedef my_source_t *(*my_source_create_fn_t)(my_core_t *core, my_source_conf_t *conf);
 typedef void (*my_source_destroy_fn_t)(my_source_t *source);
 
 typedef int (*my_source_open_fn_t)(my_source_t *source);
@@ -52,5 +52,22 @@ struct my_source_priv_s {
 #define MY_SOURCE_PRIV(p) ((my_source_priv_t *)(p))
 
 #define MY_SOURCE_GET_IMPL(p) (MY_SOURCE_PRIV(p)->impl)
+
+
+extern my_source_t *my_source_create(my_core_t *core, my_source_conf_t *conf, size_t size);
+extern void my_source_destroy(my_source_t *source);
+
+extern int my_source_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_source_destroy_all(my_core_t *core);
+
+extern int my_source_open_all(my_core_t *core);
+extern int my_source_close_all(my_core_t *core);
+
+extern void my_source_register_all(void);
+
+#ifdef MY_DEBUGGING
+extern void my_source_dump_all(void);
+#endif
+
 
 #endif /* __MY_SOURCES_PRIV_H */

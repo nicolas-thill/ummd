@@ -27,12 +27,15 @@
 
 #include "core.h"
 
+#include "util/list.h"
+
 typedef struct my_source_s my_source_t;
 typedef struct my_source_conf_s my_source_conf_t;
 
 struct my_source_s {
 	my_core_t *core;
 	my_source_conf_t *conf;
+	my_list_t *oports;
 };
 
 struct my_source_conf_s {
@@ -48,18 +51,5 @@ struct my_source_conf_s {
 
 #define MY_SOURCE_GET_CORE(p) (MY_SOURCE(p)->core)
 #define MY_SOURCE_GET_CONF(p) (MY_SOURCE(p)->conf)
-
-
-extern int my_source_create_all(my_core_t *core, my_conf_t *conf);
-extern int my_source_destroy_all(my_core_t *core);
-
-extern int my_source_open_all(my_core_t *core);
-extern int my_source_close_all(my_core_t *core);
-
-extern void my_source_register_all(void);
-
-#ifdef MY_DEBUGGING
-extern void my_source_dump_all(void);
-#endif
 
 #endif /* __MY_SOURCES_H */

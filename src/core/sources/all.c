@@ -21,6 +21,9 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+
+#include <libavformat/avformat.h>
 
 #include "core/sources_priv.h"
 
@@ -56,7 +59,7 @@ static my_source_impl_t *my_source_find_impl(my_source_conf_t *conf)
 	);
 	if (strlen(url_host) > 0) {
 		if (strlen(url_prot) == 0) {
-			strncpy(url_prot, sizeof(url_prot), "udp");
+			strncpy(url_prot, "udp", sizeof(url_prot));
 		}
 		conf_type = conf->type;
 		if (!conf_type) {
@@ -82,61 +85,59 @@ static my_source_impl_t *my_source_find_impl(my_source_conf_t *conf)
 	return NULL;
 }
 
-static my_source_t *my_source_create(my_core_t *core, my_source_conf_t *conf)
+my_source_t *my_source_create(my_core_t *core, my_source_conf_t *conf, size_t size)
 {
 	my_source_t *source;
-	my_source_impl_t *impl;
-	
-	impl = my_source_find_impl(conf);
-	if (!impl) {
-		return NULL;
-	}
-	source = impl->create(conf);
+
+	source = my_mem_alloc(size);
 	if (!source) {
-		my_log(MY_LOG_ERROR, "core/source: error creating source #%d '%s'", conf->index, conf->name);
-		return NULL;
+		goto _MY_ERR_alloc;
 	}
 
-	MY_SOURCE_GET_CORE(source) = core;
-	MY_SOURCE_GET_CONF(source) = conf;
-	MY_SOURCE_GET_IMPL(source) = impl;
+	source->core = core;
+	source->conf = conf;
 
+	source->oports = my_list_create();
+	if (!source->oports) {
+		goto _MY_ERR_create_oports;
+	}
+	
 	return source;
+
+	my_list_destroy(source->oports);
+_MY_ERR_create_oports:
+	my_mem_free(source);
+_MY_ERR_alloc:
+	return NULL;
 }
 
-static void my_source_destroy(my_source_t *source)
+void my_source_destroy(my_source_t *source)
 {
-	MY_SOURCE_GET_IMPL(source)->destroy(source);
+	my_list_destroy(source->oports);
+	my_mem_free(source);
 }
+
 
 static int my_source_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
 	my_source_t *source;
 	my_source_conf_t *conf = MY_SOURCE_CONF(data);
-
-	source = my_source_create(core, conf);
-	if (source) {
-		my_list_enqueue(core->sources, source);
+	my_source_impl_t *impl;
+	
+	impl = my_source_find_impl(conf);
+	if (!impl) {
+		return 0;
 	}
 
-	return 0;
-}
+	source = impl->create(core, conf);
+	if (!source) {
+		my_log(MY_LOG_ERROR, "core/source: error creating source #%d '%s'", conf->index, conf->name);
+		return 0;
+	}
 
-static int my_source_open_fn(void *data, void *user, int flags)
-{
-	my_source_t *source = MY_SOURCE(data);
-
-	MY_SOURCE_GET_IMPL(source)->open(source);
-
-	return 0;
-}
-
-static int my_source_close_fn(void *data, void *user, int flags)
-{
-	my_source_t *source = MY_SOURCE(data);
-
-	MY_SOURCE_GET_IMPL(source)->close(source);
+	MY_SOURCE_GET_IMPL(source) = impl;
+	my_list_enqueue(core->sources, source);
 
 	return 0;
 }
@@ -147,14 +148,25 @@ int my_source_create_all(my_core_t *core, my_conf_t *conf)
 	return my_list_iter(conf->sources, my_source_create_fn, core);
 }
 
+
 int my_source_destroy_all(my_core_t *core)
 {
 	my_source_t *source;
 
 	MY_DEBUG("core/source: destroying all sources");
 	while (source = my_list_dequeue(core->sources)) {
-		my_source_destroy(source);
+		MY_SOURCE_GET_IMPL(source)->destroy(source);
 	}
+}
+
+
+static int my_source_open_fn(void *data, void *user, int flags)
+{
+	my_source_t *source = MY_SOURCE(data);
+
+	MY_SOURCE_GET_IMPL(source)->open(source);
+
+	return 0;
 }
 
 int my_source_open_all(my_core_t *core)
@@ -163,11 +175,22 @@ int my_source_open_all(my_core_t *core)
 	return my_list_iter(core->sources, my_source_open_fn, core);
 }
 
+
+static int my_source_close_fn(void *data, void *user, int flags)
+{
+	my_source_t *source = MY_SOURCE(data);
+
+	MY_SOURCE_GET_IMPL(source)->close(source);
+
+	return 0;
+}
+
 int my_source_close_all(my_core_t *core)
 {
 	MY_DEBUG("core/source: closing all sources");
 	return my_list_iter(core->sources, my_source_close_fn, core);
 }
+
 
 static void my_source_register(my_source_impl_t *source)
 {

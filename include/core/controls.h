@@ -49,17 +49,4 @@ struct my_control_conf_s {
 #define MY_CONTROL_GET_CORE(p) (MY_CONTROL(p)->core)
 #define MY_CONTROL_GET_CONF(p) (MY_CONTROL(p)->conf)
 
-
-extern int my_control_create_all(my_core_t *core, my_conf_t *conf);
-extern int my_control_destroy_all(my_core_t *core);
-
-extern int my_control_open_all(my_core_t *core);
-extern int my_control_close_all(my_core_t *core);
-
-extern void my_control_register_all(void);
-
-#ifdef MY_DEBUGGING
-extern void my_control_dump_all(void);
-#endif
-
 #endif /* __MY_CONTROLS_H */

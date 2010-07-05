@@ -48,15 +48,15 @@ struct my_source_data_s {
 #define MY_SOURCE_DATA(p) ((my_source_data_t *)(p))
 #define MY_SOURCE_DATA_SIZE (sizeof(my_source_data_t))
 
-static my_source_t *my_source_file_create(my_source_conf_t *conf)
+static my_source_t *my_source_file_create(my_core_t *core, my_source_conf_t *conf)
 {
 	my_source_t *source;
 	char url_prot[5];
 	char url_path[255];
 
-	source = my_mem_alloc(MY_SOURCE_DATA_SIZE);
+	source = my_source_create(core, conf, MY_SOURCE_DATA_SIZE);
 	if (!source) {
-		goto _MY_ERR_alloc;
+		goto _MY_ERR_create_source;
 	}
 
 	url_split(
@@ -82,16 +82,17 @@ static my_source_t *my_source_file_create(my_source_conf_t *conf)
 
 	return source;
 
+	free(MY_SOURCE_DATA(source)->path);
 _MY_ERR_parse_url:
-	my_mem_free(source);
-_MY_ERR_alloc:
+	my_source_destroy(source);
+_MY_ERR_create_source:
 	return NULL;
 }
 
 static void my_source_file_destroy(my_source_t *source)
 {
 	free(MY_SOURCE_DATA(source)->path);
-	my_mem_free(source);
+	my_source_destroy(source);
 }
 
 static int my_source_file_open(my_source_t *source)

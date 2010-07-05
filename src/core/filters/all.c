@@ -26,6 +26,7 @@
 
 #include "util/list.h"
 #include "util/log.h"
+#include "util/mem.h"
 
 static my_list_t my_filters;
 
@@ -57,43 +58,68 @@ static my_filter_impl_t *my_filter_find_impl(my_filter_conf_t *conf)
 	return NULL;
 }
 
-static my_filter_t *my_filter_create(my_core_t *core, my_filter_conf_t *conf)
+
+my_filter_t *my_filter_create(my_core_t *core, my_filter_conf_t *conf, size_t size)
 {
 	my_filter_t *filter;
-	my_filter_impl_t *impl;
-	
-	impl = my_filter_find_impl(conf);
-	if (!impl) {
-		return NULL;
-	}
-	filter = impl->create(conf);
+
+	filter = my_mem_alloc(size);
 	if (!filter) {
-		my_log(MY_LOG_ERROR, "core/filter: error creating filter #%d '%s'", conf->index, conf->name);
-		return NULL;
+		goto _MY_ERR_alloc;
 	}
 
-	MY_FILTER_GET_CORE(filter) = core;
-	MY_FILTER_GET_CONF(filter) = conf;
-	MY_FILTER_GET_IMPL(filter) = impl;
+	filter->core = core;
+	filter->conf = conf;
+
+	filter->iports = my_list_create();
+	if (!filter->iports) {
+		goto _MY_ERR_create_iports;
+	}
+
+	filter->oports = my_list_create();
+	if (!filter->oports) {
+		goto _MY_ERR_create_oports;
+	}
 
 	return filter;
+
+	my_list_destroy(filter->iports);
+_MY_ERR_create_iports:
+	my_list_destroy(filter->oports);
+_MY_ERR_create_oports:
+	my_mem_free(filter);
+_MY_ERR_alloc:
+	return NULL;
 }
 
-static void my_filter_destroy(my_filter_t *filter)
+void my_filter_destroy(my_filter_t *filter)
 {
-	MY_FILTER_GET_IMPL(filter)->destroy(filter);
+	my_list_destroy(filter->iports);
+	my_list_destroy(filter->oports);
+	my_mem_free(filter);
 }
+
 
 static int my_filter_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
 	my_filter_t *filter;
 	my_filter_conf_t *conf = MY_FILTER_CONF(data);
+	my_filter_impl_t *impl;
 
-	filter = my_filter_create(core, conf);
-	if (filter) {
-		my_list_enqueue(core->filters, filter);
+	impl = my_filter_find_impl(conf);
+	if (!impl) {
+		return 0;
 	}
+
+	filter = impl->create(core, conf);
+	if (!filter) {
+		my_log(MY_LOG_ERROR, "core/filter: error creating filter #%d '%s'", conf->index, conf->name);
+		return 0;
+	}
+
+	MY_FILTER_GET_IMPL(filter) = impl;
+	my_list_enqueue(core->filters, filter);
 
 	return 0;
 }
@@ -104,15 +130,17 @@ int my_filter_create_all(my_core_t *core, my_conf_t *conf)
 	return my_list_iter(conf->filters, my_filter_create_fn, core);
 }
 
+
 int my_filter_destroy_all(my_core_t *core)
 {
 	my_filter_t *filter;
 
 	MY_DEBUG("core/filter: destroying all filters");
 	while (filter = my_list_dequeue(core->filters)) {
-		my_filter_destroy(filter);
+		MY_FILTER_GET_IMPL(filter)->destroy(filter);
 	}
 }
+
 
 static void my_filter_register(my_filter_impl_t *filter)
 {

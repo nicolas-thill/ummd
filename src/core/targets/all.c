@@ -21,11 +21,15 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+
+#include <libavformat/avformat.h>
 
 #include "core/targets_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
+#include "util/mem.h"
 
 static my_list_t my_targets;
 
@@ -55,7 +59,7 @@ static my_target_impl_t *my_target_find_impl(my_target_conf_t *conf)
 	);
 	if (strlen(url_host) > 0) {
 		if (strlen(url_prot) == 0) {
-			strncpy(url_prot, sizeof(url_prot), "udp");
+			strncpy(url_prot, "udp", sizeof(url_prot));
 		}
 		conf_type = conf->type;
 		if (!conf_type) {
@@ -81,61 +85,60 @@ static my_target_impl_t *my_target_find_impl(my_target_conf_t *conf)
 	return NULL;
 }
 
-static my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf)
+
+my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf, size_t size)
 {
 	my_target_t *target;
-	my_target_impl_t *impl;
-	
-	impl = my_target_find_impl(conf);
-	if (!impl) {
-		return NULL;
-	}
-	target = impl->create(conf);
+
+	target = my_mem_alloc(size);
 	if (!target) {
-		my_log(MY_LOG_ERROR, "core/target: error creating target #%d '%s'", conf->index, conf->name);
-		return NULL;
+		goto _MY_ERR_alloc;
 	}
 
-	MY_TARGET_GET_CORE(target) = core;
-	MY_TARGET_GET_CONF(target) = conf;
-	MY_TARGET_GET_IMPL(target) = impl;
+	target->core = core;
+	target->conf = conf;
 
+	target->iports = my_list_create();
+	if (!target->iports) {
+		goto _MY_ERR_create_iports;
+	}
+	
 	return target;
+
+	my_list_destroy(target->iports);
+_MY_ERR_create_iports:
+	my_mem_free(target);
+_MY_ERR_alloc:
+	return NULL;
 }
 
-static void my_target_destroy(my_target_t *target)
+void my_target_destroy(my_target_t *target)
 {
-	MY_TARGET_GET_IMPL(target)->destroy(target);
+	my_list_destroy(target->iports);
+	my_mem_free(target);
 }
+
 
 static int my_target_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
 	my_target_t *target;
 	my_target_conf_t *conf = MY_TARGET_CONF(data);
+	my_target_impl_t *impl;
 
-	target = my_target_create(core, conf);
-	if (target) {
-		my_list_enqueue(core->targets, target);
+	impl = my_target_find_impl(conf);
+	if (!impl) {
+		return 0;
 	}
 
-	return 0;
-}
+	target = impl->create(core, conf);
+	if (!target) {
+		my_log(MY_LOG_ERROR, "core/target: error creating target #%d '%s'", conf->index, conf->name);
+		return 0;
+	}
 
-static int my_target_open_fn(void *data, void *user, int flags)
-{
-	my_target_t *target = MY_TARGET(data);
-
-	MY_TARGET_GET_IMPL(target)->open(target);
-
-	return 0;
-}
-
-static int my_target_close_fn(void *data, void *user, int flags)
-{
-	my_target_t *target = MY_TARGET(data);
-
-	MY_TARGET_GET_IMPL(target)->close(target);
+	MY_TARGET_GET_IMPL(target) = impl;
+	my_list_enqueue(core->targets, target);
 
 	return 0;
 }
@@ -146,14 +149,25 @@ int my_target_create_all(my_core_t *core, my_conf_t *conf)
 	return my_list_iter(conf->targets, my_target_create_fn, core);
 }
 
+
 int my_target_destroy_all(my_core_t *core)
 {
 	my_target_t *target;
 
 	MY_DEBUG("core/target: destroying all targets");
 	while (target = my_list_dequeue(core->targets)) {
-		my_target_destroy(target);
+		MY_TARGET_GET_IMPL(target)->destroy(target);
 	}
+}
+
+
+static int my_target_open_fn(void *data, void *user, int flags)
+{
+	my_target_t *target = MY_TARGET(data);
+
+	MY_TARGET_GET_IMPL(target)->open(target);
+
+	return 0;
 }
 
 int my_target_open_all(my_core_t *core)
@@ -162,11 +176,22 @@ int my_target_open_all(my_core_t *core)
 	return my_list_iter(core->targets, my_target_open_fn, core);
 }
 
+
+static int my_target_close_fn(void *data, void *user, int flags)
+{
+	my_target_t *target = MY_TARGET(data);
+
+	MY_TARGET_GET_IMPL(target)->close(target);
+
+	return 0;
+}
+
 int my_target_close_all(my_core_t *core)
 {
 	MY_DEBUG("core/target: closing all targets");
 	return my_list_iter(core->targets, my_target_close_fn, core);
 }
+
 
 static void my_target_register(my_core_t *core, my_target_impl_t *target)
 {

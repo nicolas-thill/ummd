@@ -28,7 +28,7 @@
 typedef struct my_control_impl_s my_control_impl_t;
 typedef struct my_control_priv_s my_control_priv_t;
 
-typedef my_control_t *(*my_control_create_fn_t)(my_control_conf_t *conf);
+typedef my_control_t *(*my_control_create_fn_t)(my_core_t *core, my_control_conf_t *conf);
 typedef void (*my_control_destroy_fn_t)(my_control_t *control);
 
 typedef int (*my_control_open_fn_t)(my_control_t *control);
@@ -52,5 +52,21 @@ struct my_control_priv_s {
 #define MY_CONTROL_PRIV(p) ((my_control_priv_t *)(p))
 
 #define MY_CONTROL_GET_IMPL(p) (MY_CONTROL_PRIV(p)->impl)
+
+
+extern my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf, size_t size);
+extern void my_control_destroy(my_control_t *control);
+
+extern int my_control_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_control_destroy_all(my_core_t *core);
+
+extern int my_control_open_all(my_core_t *core);
+extern int my_control_close_all(my_core_t *core);
+
+extern void my_control_register_all(void);
+
+#ifdef MY_DEBUGGING
+extern void my_control_dump_all(void);
+#endif
 
 #endif /* __MY_CONTROLS_PRIV_H */

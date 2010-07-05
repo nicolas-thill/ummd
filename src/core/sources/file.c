@@ -31,21 +31,22 @@
 #include <event.h>
 #include <libavformat/avformat.h>
 
-#include "core/sources.h"
+#include "core/sources_priv.h"
 
 #include "util/log.h"
 #include "util/mem.h"
 
-typedef struct my_source_priv my_source_priv_t;
+typedef struct my_source_data_s my_source_data_t;
 
-struct my_source_priv {
-	my_source_t base;
+struct my_source_data_s {
+	my_source_priv_t _inherited;
 	char *path;
 	int fd;
 	struct event event;
 };
 
-#define MY_SOURCE_PRIV(p) ((my_source_priv_t *)(p))
+#define MY_SOURCE_DATA(p) ((my_source_data_t *)(p))
+#define MY_SOURCE_DATA_SIZE (sizeof(my_source_data_t))
 
 static my_source_t *my_source_file_create(my_source_conf_t *conf)
 {
@@ -53,7 +54,7 @@ static my_source_t *my_source_file_create(my_source_conf_t *conf)
 	char url_prot[5];
 	char url_path[255];
 
-	source = my_mem_alloc(sizeof(my_source_priv_t));
+	source = my_mem_alloc(MY_SOURCE_DATA_SIZE);
 	if (!source) {
 		goto _MY_ERR_alloc;
 	}
@@ -77,7 +78,7 @@ static my_source_t *my_source_file_create(my_source_conf_t *conf)
 		goto _MY_ERR_parse_url;
 	}
 
-	MY_SOURCE_PRIV(source)->path = strdup(url_path);
+	MY_SOURCE_DATA(source)->path = strdup(url_path);
 
 	return source;
 
@@ -89,21 +90,21 @@ _MY_ERR_alloc:
 
 static void my_source_file_destroy(my_source_t *source)
 {
-	free(MY_SOURCE_PRIV(source)->path);
+	free(MY_SOURCE_DATA(source)->path);
 	my_mem_free(source);
 }
 
 static int my_source_file_open(my_source_t *source)
 {
-	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE_PRIV(source)->path);
-	MY_SOURCE_PRIV(source)->fd = open(MY_SOURCE_PRIV(source)->path, O_RDONLY | O_NONBLOCK, 0);
-	if (MY_SOURCE_PRIV(source)->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE_PRIV(source)->path, strerror(errno));
+	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE_DATA(source)->path);
+	MY_SOURCE_DATA(source)->fd = open(MY_SOURCE_DATA(source)->path, O_RDONLY | O_NONBLOCK, 0);
+	if (MY_SOURCE_DATA(source)->fd == -1) {
+		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE_DATA(source)->path, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
 /*
-	event_set(&(MY_SOURCE_PRIV(source)->event), MY_SOURCE_PRIV(source)->fd, EV_READ | EV_PERSIST, my_source_file_event_handler, source);
-	my_core_event_add(source->core, &(MY_SOURCE_PRIV(source)->event));
+	event_set(&(MY_SOURCE_DATA(source)->event), MY_SOURCE_DATA(source)->fd, EV_READ | EV_PERSIST, my_source_file_event_handler, source);
+	my_core_event_add(source->core, &(MY_SOURCE_DATA(source)->event));
 */
 	return 0;
 
@@ -114,18 +115,17 @@ _MY_ERR_open_file:
 static int my_source_file_close(my_source_t *source)
 {
 /*
-	my_core_event_del(source->core, &(MY_SOURCE_PRIV(source)->event));
+	my_core_event_del(source->core, &(MY_SOURCE_DATA(source)->event));
 */
-	MY_DEBUG("core/source: closing file '%s'", MY_SOURCE_PRIV(source)->path);
-	if (close(MY_SOURCE_PRIV(source)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error closing file '%s' (%s)", MY_SOURCE_PRIV(source)->path, strerror(errno));
+	MY_DEBUG("core/source: closing file '%s'", MY_SOURCE_DATA(source)->path);
+	if (close(MY_SOURCE_DATA(source)->fd) == -1) {
+		my_log(MY_LOG_ERROR, "core/source: error closing file '%s' (%s)", MY_SOURCE_DATA(source)->path, strerror(errno));
 	}
 
 	return 0;
 }
 
 my_source_impl_t my_source_file = {
-	.id = MY_SOURCE_FILE,
 	.name = "file",
 	.desc = "Regular file source",
 	.create = my_source_file_create,

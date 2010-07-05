@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 
-#include "core/sources.h"
+#include "core/sources_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
@@ -97,16 +97,16 @@ static my_source_t *my_source_create(my_core_t *core, my_source_conf_t *conf)
 		return NULL;
 	}
 
-	source->core = core;
-	source->conf = conf;
-	source->impl = impl;
+	MY_SOURCE_GET_CORE(source) = core;
+	MY_SOURCE_GET_CONF(source) = conf;
+	MY_SOURCE_GET_IMPL(source) = impl;
 
 	return source;
 }
 
 static void my_source_destroy(my_source_t *source)
 {
-	source->impl->destroy(source);
+	MY_SOURCE_GET_IMPL(source)->destroy(source);
 }
 
 static int my_source_create_fn(void *data, void *user, int flags)
@@ -127,7 +127,7 @@ static int my_source_open_fn(void *data, void *user, int flags)
 {
 	my_source_t *source = MY_SOURCE(data);
 
-	source->impl->open(source);
+	MY_SOURCE_GET_IMPL(source)->open(source);
 
 	return 0;
 }
@@ -136,7 +136,7 @@ static int my_source_close_fn(void *data, void *user, int flags)
 {
 	my_source_t *source = MY_SOURCE(data);
 
-	source->impl->close(source);
+	MY_SOURCE_GET_IMPL(source)->close(source);
 
 	return 0;
 }

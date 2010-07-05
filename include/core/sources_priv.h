@@ -20,46 +20,37 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_SOURCES_H
-#define __MY_SOURCES_H
+#ifndef __MY_SOURCES_PRIV_H
+#define __MY_SOURCES_PRIV_H
 
-#include "autoconf.h"
+#include "core/sources.h"
 
-#include "core.h"
+typedef struct my_source_impl_s my_source_impl_t;
+typedef struct my_source_priv_s my_source_priv_t;
 
-typedef struct my_source my_source_t;
-typedef struct my_source_conf my_source_conf_t;
+typedef my_source_t *(*my_source_create_fn_t)(my_source_conf_t *conf);
+typedef void (*my_source_destroy_fn_t)(my_source_t *source);
 
-struct my_source {
-	my_core_t *core;
-	my_source_conf_t *conf;
-};
+typedef int (*my_source_open_fn_t)(my_source_t *source);
+typedef int (*my_source_close_fn_t)(my_source_t *source);
 
-struct my_source_conf {
-	int index;
+struct my_source_impl_s {
 	char *name;
 	char *desc;
-	char *type;
-	char *url;
+	my_source_create_fn_t create;
+	my_source_destroy_fn_t destroy;
+	my_source_open_fn_t open;
+	my_source_close_fn_t close;
 };
 
-#define MY_SOURCE(p) ((my_source_t *)(p))
-#define MY_SOURCE_CONF(p) ((my_source_conf_t *)(p))
+struct my_source_priv_s {
+	my_source_t _inherited;
+	my_source_impl_t *impl;
+};
 
-#define MY_SOURCE_GET_CORE(p) (MY_SOURCE(p)->core)
-#define MY_SOURCE_GET_CONF(p) (MY_SOURCE(p)->conf)
+#define MY_SOURCE_IMPL(p) ((my_source_impl_t *)(p))
+#define MY_SOURCE_PRIV(p) ((my_source_priv_t *)(p))
 
+#define MY_SOURCE_GET_IMPL(p) (MY_SOURCE_PRIV(p)->impl)
 
-extern int my_source_create_all(my_core_t *core, my_conf_t *conf);
-extern int my_source_destroy_all(my_core_t *core);
-
-extern int my_source_open_all(my_core_t *core);
-extern int my_source_close_all(my_core_t *core);
-
-extern void my_source_register_all(void);
-
-#ifdef MY_DEBUGGING
-extern void my_source_dump_all(void);
-#endif
-
-#endif /* __MY_SOURCES_H */
+#endif /* __MY_SOURCES_PRIV_H */

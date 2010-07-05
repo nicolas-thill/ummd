@@ -20,12 +20,11 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "core/controls.h"
+#include "core/controls_priv.h"
 
 #include "util/list.h"
 
 my_control_impl_t my_control_osc = {
-	.id = MY_CONTROL_OSC,
 	.name = "osc",
 	.desc = "Open Sound Control (OSC) control interface",
 };

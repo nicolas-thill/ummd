@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 
-#include "core/controls.h"
+#include "core/controls_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
@@ -80,16 +80,16 @@ static my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf)
 		return NULL;
 	}
 
-	control->core = core;
-	control->conf = conf;
-	control->impl = impl;
+	MY_CONTROL_GET_CORE(control) = core;
+	MY_CONTROL_GET_CONF(control) = conf;
+	MY_CONTROL_GET_IMPL(control) = impl;
 
 	return control;
 }
 
 static void my_control_destroy(my_control_t *control)
 {
-	control->impl->destroy(control);
+	MY_CONTROL_GET_IMPL(control)->destroy(control);
 }
 
 static int my_control_create_fn(void *data, void *user, int flags)
@@ -110,7 +110,7 @@ static int my_control_open_fn(void *data, void *user, int flags)
 {
 	my_control_t *control = MY_CONTROL(data);
 
-	control->impl->open(control);
+	MY_CONTROL_GET_IMPL(control)->open(control);
 
 	return 0;
 }
@@ -119,7 +119,7 @@ static int my_control_close_fn(void *data, void *user, int flags)
 {
 	my_control_t *control = MY_CONTROL(data);
 
-	control->impl->close(control);
+	MY_CONTROL_GET_IMPL(control)->close(control);
 
 	return 0;
 }

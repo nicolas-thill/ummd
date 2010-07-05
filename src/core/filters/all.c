@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 
-#include "core/filters.h"
+#include "core/filters_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
@@ -72,16 +72,16 @@ static my_filter_t *my_filter_create(my_core_t *core, my_filter_conf_t *conf)
 		return NULL;
 	}
 
-	filter->core = core;
-	filter->conf = conf;
-	filter->impl = impl;
+	MY_FILTER_GET_CORE(filter) = core;
+	MY_FILTER_GET_CONF(filter) = conf;
+	MY_FILTER_GET_IMPL(filter) = impl;
 
 	return filter;
 }
 
 static void my_filter_destroy(my_filter_t *filter)
 {
-	filter->impl->destroy(filter);
+	MY_FILTER_GET_IMPL(filter)->destroy(filter);
 }
 
 static int my_filter_create_fn(void *data, void *user, int flags)

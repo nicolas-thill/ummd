@@ -22,25 +22,27 @@
 
 #include <stdlib.h>
 
-#include "core/filters.h"
+#include "core/filters_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
 
-typedef struct my_filter_priv my_filter_priv_t;
+typedef struct my_filter_data_s my_filter_data_t;
 
-struct my_filter_priv {
-	my_filter_t base;
+struct my_filter_data_s {
+	my_filter_priv_t _inherited;
 };
 
-#define MY_FILTER_PRIV(p) ((my_filter_priv_t *)(p))
+#define MY_FILTER_DATA(p) ((my_filter_data_t *)(p))
+#define MY_FILTER_DATA_SIZE (sizeof(my_filter_data_t))
+
 
 static my_filter_t *my_filter_delay_create(my_filter_conf_t *conf)
 {
 	my_filter_t *filter;
 
-	filter = my_mem_alloc(sizeof(my_filter_priv_t));
+	filter = my_mem_alloc(MY_FILTER_DATA_SIZE);
 	if (!filter) {
 		my_log(MY_LOG_ERROR, "core/filter: error allocating data for filter #%d '%s'", conf->index, conf->name);
 		goto _MY_ERR_alloc;
@@ -59,7 +61,6 @@ static void my_filter_delay_destroy(my_filter_t *filter)
 }
 
 my_filter_impl_t my_filter_delay = {
-	.id = MY_FILTER_DELAY,
 	.name = "delay",
 	.desc = "Delay filter",
 	.create = my_filter_delay_create,

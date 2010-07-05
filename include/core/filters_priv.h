@@ -20,43 +20,34 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_FILTERS_H
-#define __MY_FILTERS_H
+#ifndef __MY_FILTERS_PRIV_H
+#define __MY_FILTERS_PRIV_H
 
 #include "autoconf.h"
 
-#include "core.h"
+#include "core/filters.h"
 
-typedef struct my_filter_s my_filter_t;
-typedef struct my_filter_conf_s my_filter_conf_t;
+typedef struct my_filter_impl_s my_filter_impl_t;
+typedef struct my_filter_priv_s my_filter_priv_t;
 
-struct my_filter_s {
-	my_core_t *core;
-	my_filter_conf_t *conf;
-};
+typedef my_filter_t *(*my_filter_create_fn_t)(my_filter_conf_t *conf);
+typedef void (*my_filter_destroy_fn_t)(my_filter_t *filter);
 
-struct my_filter_conf_s {
-	int index;
+struct my_filter_impl_s {
 	char *name;
 	char *desc;
-	char *type;
-	char *arg;
+	my_filter_create_fn_t create;
+	my_filter_destroy_fn_t destroy;
 };
 
-#define MY_FILTER(p) ((my_filter_t *)(p))
-#define MY_FILTER_CONF(p) ((my_filter_conf_t *)(p))
+struct my_filter_priv_s {
+	my_filter_t _inherited;
+	my_filter_impl_t *impl;
+};
 
-#define MY_FILTER_GET_CORE(p) (MY_FILTER(p)->core)
-#define MY_FILTER_GET_CONF(p) (MY_FILTER(p)->conf)
+#define MY_FILTER_IMPL(p) ((my_filter_impl_t *)(p))
+#define MY_FILTER_PRIV(p) ((my_filter_priv_t *)(p))
 
+#define MY_FILTER_GET_IMPL(p) (MY_FILTER_PRIV(p)->impl)
 
-extern int my_filter_create_all(my_core_t *core, my_conf_t *conf);
-extern int my_filter_destroy_all(my_core_t *core);
-
-extern void my_filter_register_all(void);
-
-#ifdef MY_DEBUGGING
-extern void my_filter_dump_all(void);
-#endif
-
-#endif /* __MY_FILTERS_H */
+#endif /* __MY_FILTERS_PRIV_H */

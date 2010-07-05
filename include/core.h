@@ -31,9 +31,9 @@
 
 #include "util/list.h"
 
-typedef struct my_core my_core_t;
+typedef struct my_core_s my_core_t;
 
-struct my_core {
+struct my_core_s {
 	my_list_t *controls;
 	my_list_t *filters;
 	my_list_t *sources;
@@ -41,6 +41,7 @@ struct my_core {
 };
 
 #define MY_CORE(p) ((my_core_t *)(p))
+
 
 extern my_core_t *my_core_create(void);
 extern void my_core_destroy(my_core_t *core);

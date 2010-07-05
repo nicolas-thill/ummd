@@ -27,9 +27,9 @@
 
 #include "util/list.h"
 
-typedef struct my_conf my_conf_t;
+typedef struct my_conf_s my_conf_t;
 
-struct my_conf {
+struct my_conf_s {
 	char *cfg_file;
 	char *log_file;
 	char *pid_file;
@@ -40,6 +40,9 @@ struct my_conf {
 	my_list_t *targets;
 	my_list_t *wirings;
 };
+
+#define MY_CONF(p) ((my_conf_t *)(p))
+
 
 extern my_conf_t * my_conf_create(void);
 void my_conf_destroy(my_conf_t *conf);

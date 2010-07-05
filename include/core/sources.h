@@ -27,15 +27,15 @@
 
 #include "core.h"
 
-typedef struct my_source my_source_t;
-typedef struct my_source_conf my_source_conf_t;
+typedef struct my_source_s my_source_t;
+typedef struct my_source_conf_s my_source_conf_t;
 
-struct my_source {
+struct my_source_s {
 	my_core_t *core;
 	my_source_conf_t *conf;
 };
 
-struct my_source_conf {
+struct my_source_conf_s {
 	int index;
 	char *name;
 	char *desc;

@@ -23,8 +23,6 @@
 #ifndef __MY_FILTERS_PRIV_H
 #define __MY_FILTERS_PRIV_H
 
-#include "autoconf.h"
-
 #include "core/filters.h"
 
 typedef struct my_filter_impl_s my_filter_impl_t;

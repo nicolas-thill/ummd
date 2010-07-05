@@ -23,9 +23,9 @@
 #ifndef __MY_WIRINGS_H
 #define __MY_WIRINGS_H
 
-typedef struct my_wiring_conf my_wiring_conf_t;
+typedef struct my_wiring_conf_s my_wiring_conf_t;
 
-struct my_wiring_conf {
+struct my_wiring_conf_s {
 	int index;
 	char *name;
 	char *desc;

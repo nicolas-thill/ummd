@@ -18,7 +18,7 @@ filters = (
 );
 
 sources = (
-	{ url = "file:///dev/dsp"; },
+	{ url = "file:///dev/urandom"; },
 	{ url = "udp://127.0.0.1:1001/"; type = "client"; },
 	{ url = "udp://224.1.1.1:1001/"; },
 	{ url = "udp://127.0.0.1:1002/"; type = "server"; }
@@ -33,13 +33,13 @@ targets = (
 
 wirings = (
 
-	/* connect source's output #0 to target's input #0 */
-	{ source = "source/0"; target = "target/0"; },
+	/* connect output of source #0 to input of target #0 */
+	{ source = "sources/0"; target = "targets/0"; },
 
-	/* connect source's output #0 to filter's input #0 */
-	{ source = "source/0"; target = "filter/0"; },
-	/* connect filter's output #0 to target's input #0 */
-	{ source = "filter/0"; target = "target/0"; }
+	/* connect output of source #0 to input of filter #0 */
+	{ source = "sources/0"; target = "filters/0"; },
+	/* connect output of filter #0 to input of target #0 */
+	{ source = "filters/0"; target = "targets/0"; }
 	
 );
 

@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 
-#include "core/targets.h"
+#include "core/targets_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
@@ -96,16 +96,16 @@ static my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf)
 		return NULL;
 	}
 
-	target->core = core;
-	target->conf = conf;
-	target->impl = impl;
+	MY_TARGET_GET_CORE(target) = core;
+	MY_TARGET_GET_CONF(target) = conf;
+	MY_TARGET_GET_IMPL(target) = impl;
 
 	return target;
 }
 
 static void my_target_destroy(my_target_t *target)
 {
-	target->impl->destroy(target);
+	MY_TARGET_GET_IMPL(target)->destroy(target);
 }
 
 static int my_target_create_fn(void *data, void *user, int flags)
@@ -126,7 +126,7 @@ static int my_target_open_fn(void *data, void *user, int flags)
 {
 	my_target_t *target = MY_TARGET(data);
 
-	target->impl->open(target);
+	MY_TARGET_GET_IMPL(target)->open(target);
 
 	return 0;
 }
@@ -135,7 +135,7 @@ static int my_target_close_fn(void *data, void *user, int flags)
 {
 	my_target_t *target = MY_TARGET(data);
 
-	target->impl->close(target);
+	MY_TARGET_GET_IMPL(target)->close(target);
 
 	return 0;
 }

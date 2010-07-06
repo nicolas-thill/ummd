@@ -38,11 +38,11 @@ struct my_filter_data_s {
 #define MY_FILTER_DATA_SIZE (sizeof(my_filter_data_t))
 
 
-static my_filter_t *my_filter_null_create(my_core_t *core, my_filter_conf_t *conf)
+static my_filter_t *my_filter_null_create(my_filter_conf_t *conf)
 {
 	my_filter_t *filter;
 
-	filter = my_filter_create(core, conf, MY_FILTER_DATA_SIZE);
+	filter = my_filter_priv_create(conf, MY_FILTER_DATA_SIZE);
 	if (!filter) {
 		my_log(MY_LOG_ERROR, "core/filter: error allocating data for filter #%d '%s'", conf->index, conf->name);
 		goto _MY_ERR_alloc;
@@ -50,14 +50,14 @@ static my_filter_t *my_filter_null_create(my_core_t *core, my_filter_conf_t *con
 
 	return filter;
 
-	my_filter_destroy(filter);
+	my_filter_priv_destroy(filter);
 _MY_ERR_alloc:
 	return NULL;
 }
 
 static void my_filter_null_destroy(my_filter_t *filter)
 {
-	my_filter_destroy(filter);
+	my_filter_priv_destroy(filter);
 }
 
 my_filter_impl_t my_filter_null = {

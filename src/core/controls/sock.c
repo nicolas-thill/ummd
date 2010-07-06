@@ -45,13 +45,13 @@ struct my_control_data_s {
 #define MY_CONTROL_DATA(p) ((my_control_data_t *)(p))
 #define MY_CONTROL_DATA_SIZE (sizeof(my_control_data_t))
 
-static my_control_t *my_control_sock_create(my_core_t *core, my_control_conf_t *conf)
+static my_control_t *my_control_sock_create(my_control_conf_t *conf)
 {
 	my_control_t *control;
 	char url_prot[5];
 	char url_path[255];
 
-	control = my_control_create(core, conf, MY_CONTROL_DATA_SIZE);
+	control = my_control_priv_create(conf, MY_CONTROL_DATA_SIZE);
 	if (!control) {
 		goto _MY_ERR_alloc;
 	}
@@ -81,7 +81,7 @@ static my_control_t *my_control_sock_create(my_core_t *core, my_control_conf_t *
 
 	free(MY_CONTROL_DATA(control)->path);
 _MY_ERR_parse_url:
-	my_mem_free(control);
+	my_control_priv_destroy(control);
 _MY_ERR_alloc:
 	return NULL;
 }
@@ -89,7 +89,7 @@ _MY_ERR_alloc:
 static void my_control_sock_destroy(my_control_t *control)
 {
 	free(MY_CONTROL_DATA(control)->path);
-	my_control_destroy(control);
+	my_control_priv_destroy(control);
 }
 
 static int my_control_sock_open(my_control_t *control)

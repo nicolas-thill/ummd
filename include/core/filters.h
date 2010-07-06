@@ -53,4 +53,16 @@ struct my_filter_conf_s {
 #define MY_FILTER_GET_CORE(p) (MY_FILTER(p)->core)
 #define MY_FILTER_GET_CONF(p) (MY_FILTER(p)->conf)
 
+extern my_filter_t *my_filter_create(my_filter_conf_t *conf);
+extern void my_filter_destroy(my_filter_t *filter);
+
+extern int my_filter_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_filter_destroy_all(my_core_t *core);
+
+extern void my_filter_register_all(void);
+
+#ifdef MY_DEBUGGING
+extern void my_filter_dump_all(void);
+#endif
+
 #endif /* __MY_FILTERS_H */

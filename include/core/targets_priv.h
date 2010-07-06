@@ -28,7 +28,7 @@
 typedef struct my_target_impl_s my_target_impl_t;
 typedef struct my_target_priv_s my_target_priv_t;
 
-typedef my_target_t *(*my_target_create_fn_t)(my_core_t *core, my_target_conf_t *conf);
+typedef my_target_t *(*my_target_create_fn_t)(my_target_conf_t *conf);
 typedef void (*my_target_destroy_fn_t)(my_target_t *target);
 
 typedef int (*my_target_open_fn_t)(my_target_t *target);
@@ -53,20 +53,9 @@ struct my_target_priv_s {
 
 #define MY_TARGET_GET_IMPL(p) (MY_TARGET_PRIV(p)->impl)
 
+extern my_target_t *my_target_priv_create(my_target_conf_t *conf, size_t size);
+extern void my_target_priv_destroy(my_target_t *target);
 
-extern my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf, size_t size);
-extern void my_target_destroy(my_target_t *target);
-
-extern int my_target_create_all(my_core_t *core, my_conf_t *conf);
-extern int my_target_destroy_all(my_core_t *core);
-
-extern int my_target_open_all(my_core_t *core);
-extern int my_target_close_all(my_core_t *core);
-
-extern void my_target_register_all(void);
-
-#ifdef MY_DEBUGGING
-extern void my_target_dump_all(void);
-#endif
+extern void my_target_register(my_core_t *core, my_target_impl_t *target);
 
 #endif /* __MY_TARGETS_PRIV_H */

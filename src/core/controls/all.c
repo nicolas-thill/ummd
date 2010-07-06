@@ -38,7 +38,7 @@ static my_list_t my_controls;
 	my_control_register(&my_control_##x); \
 }
 
-static my_control_impl_t *my_control_find_impl(my_control_conf_t *conf)
+static my_control_impl_t *my_control_impl_find(my_control_conf_t *conf)
 {
 	my_control_impl_t *impl;
 	my_node_t *node;
@@ -69,7 +69,7 @@ static my_control_impl_t *my_control_find_impl(my_control_conf_t *conf)
 	return NULL;
 }
 
-my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf, size_t size)
+my_control_t *my_control_priv_create(my_control_conf_t *conf, size_t size)
 {
 	my_control_t *control;
 
@@ -78,7 +78,6 @@ my_control_t *my_control_create(my_core_t *core, my_control_conf_t *conf, size_t
 		goto _MY_ERR_alloc;
 	}
 
-	control->core = core;
 	control->conf = conf;
 
 	return control;
@@ -88,32 +87,49 @@ _MY_ERR_alloc:
 	return NULL;
 }
 
-void my_control_destroy(my_control_t *control)
+void my_control_priv_destroy(my_control_t *control)
 {
 	my_mem_free(control);
 }
 
+
+my_control_t *my_control_create(my_control_conf_t *conf)
+{
+	my_control_t *control;
+	my_control_impl_t *impl;
+
+	impl = my_control_impl_find(conf);
+	if (!impl) {
+		return NULL;
+	}
+
+	control = impl->create(conf);
+	if (!control) {
+		my_log(MY_LOG_ERROR, "core/control: error creating control #%d '%s'", conf->index, conf->name);
+		return NULL;
+	}
+
+	MY_CONTROL_GET_IMPL(control) = impl;
+
+	return control;
+}
+
+void my_control_destroy(my_control_t *control)
+{
+	MY_CONTROL_GET_IMPL(control)->destroy(control);
+}
 
 static int my_control_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
 	my_control_t *control;
 	my_control_conf_t *conf = MY_CONTROL_CONF(data);
-	my_control_impl_t *impl;
-	
-	impl = my_control_find_impl(conf);
-	if (!impl) {
-		return 0;
-	}
 
-	control = impl->create(core, conf);
-	if (!control) {
-		my_log(MY_LOG_ERROR, "core/control: error creating control #%d '%s'", conf->index, conf->name);
-		return 0;
+	control = my_control_create(conf);
+	if (control) {
+		my_list_enqueue(core->controls, control);
+		control->core = core;
 	}
-
-	MY_CONTROL_GET_IMPL(control) = impl;
-	my_list_enqueue(core->controls, control);
 
 	return 0;
 }
@@ -131,7 +147,7 @@ int my_control_destroy_all(my_core_t *core)
 
 	MY_DEBUG("core/control: destroying all controls");
 	while (control = my_list_dequeue(core->controls)) {
-		MY_CONTROL_GET_IMPL(control)->destroy(control);
+		my_control_destroy(control);
 	}
 }
 
@@ -168,7 +184,7 @@ int my_control_close_all(my_core_t *core)
 }
 
 
-static void my_control_register(my_control_impl_t *impl)
+void my_control_register(my_control_impl_t *impl)
 {
 	my_list_enqueue(&my_controls, impl);
 }

@@ -38,7 +38,7 @@ static my_list_t my_sources;
 	my_source_register(&my_source_##x); \
 }
 
-static my_source_impl_t *my_source_find_impl(my_source_conf_t *conf)
+static my_source_impl_t *my_source_impl_find(my_source_conf_t *conf)
 {
 	my_source_impl_t *impl;
 	my_node_t *node;
@@ -85,7 +85,7 @@ static my_source_impl_t *my_source_find_impl(my_source_conf_t *conf)
 	return NULL;
 }
 
-my_source_t *my_source_create(my_core_t *core, my_source_conf_t *conf, size_t size)
+my_source_t *my_source_priv_create(my_source_conf_t *conf, size_t size)
 {
 	my_source_t *source;
 
@@ -94,7 +94,6 @@ my_source_t *my_source_create(my_core_t *core, my_source_conf_t *conf, size_t si
 		goto _MY_ERR_alloc;
 	}
 
-	source->core = core;
 	source->conf = conf;
 
 	source->oports = my_list_create();
@@ -111,33 +110,49 @@ _MY_ERR_alloc:
 	return NULL;
 }
 
-void my_source_destroy(my_source_t *source)
+void my_source_priv_destroy(my_source_t *source)
 {
 	my_list_destroy(source->oports);
 	my_mem_free(source);
 }
 
-
-static int my_source_create_fn(void *data, void *user, int flags)
+my_source_t *my_source_create(my_source_conf_t *conf)
 {
-	my_core_t *core = MY_CORE(user);
 	my_source_t *source;
-	my_source_conf_t *conf = MY_SOURCE_CONF(data);
 	my_source_impl_t *impl;
-	
-	impl = my_source_find_impl(conf);
+
+	impl = my_source_impl_find(conf);
 	if (!impl) {
 		return 0;
 	}
 
-	source = impl->create(core, conf);
+	source = impl->create(conf);
 	if (!source) {
 		my_log(MY_LOG_ERROR, "core/source: error creating source #%d '%s'", conf->index, conf->name);
 		return 0;
 	}
 
 	MY_SOURCE_GET_IMPL(source) = impl;
-	my_list_enqueue(core->sources, source);
+
+	return source;
+}
+
+void my_source_destroy(my_source_t *source)
+{
+	MY_SOURCE_GET_IMPL(source)->destroy(source);
+}
+
+static int my_source_create_fn(void *data, void *user, int flags)
+{
+	my_core_t *core = MY_CORE(user);
+	my_source_t *source;
+	my_source_conf_t *conf = MY_SOURCE_CONF(data);
+
+	source = my_source_create(conf);
+	if (source) {
+		my_list_enqueue(core->sources, source);
+		source->core = core;
+	}
 
 	return 0;
 }
@@ -155,7 +170,7 @@ int my_source_destroy_all(my_core_t *core)
 
 	MY_DEBUG("core/source: destroying all sources");
 	while (source = my_list_dequeue(core->sources)) {
-		MY_SOURCE_GET_IMPL(source)->destroy(source);
+		my_source_destroy(source);
 	}
 }
 
@@ -192,7 +207,7 @@ int my_source_close_all(my_core_t *core)
 }
 
 
-static void my_source_register(my_source_impl_t *source)
+void my_source_register(my_source_impl_t *source)
 {
 	my_list_enqueue(&my_sources, source);
 }

@@ -38,7 +38,7 @@ static my_list_t my_targets;
 	my_target_register(&my_target_##x); \
 }
 
-static my_target_impl_t *my_target_find_impl(my_target_conf_t *conf)
+static my_target_impl_t *my_target_impl_find(my_target_conf_t *conf)
 {
 	my_target_impl_t *impl;
 	my_node_t *node;
@@ -86,7 +86,7 @@ static my_target_impl_t *my_target_find_impl(my_target_conf_t *conf)
 }
 
 
-my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf, size_t size)
+my_target_t *my_target_priv_create(my_target_conf_t *conf, size_t size)
 {
 	my_target_t *target;
 
@@ -95,7 +95,6 @@ my_target_t *my_target_create(my_core_t *core, my_target_conf_t *conf, size_t si
 		goto _MY_ERR_alloc;
 	}
 
-	target->core = core;
 	target->conf = conf;
 
 	target->iports = my_list_create();
@@ -112,33 +111,50 @@ _MY_ERR_alloc:
 	return NULL;
 }
 
-void my_target_destroy(my_target_t *target)
+void my_target_priv_destroy(my_target_t *target)
 {
 	my_list_destroy(target->iports);
 	my_mem_free(target);
 }
 
 
+my_target_t *my_target_create(my_target_conf_t *conf)
+{
+	my_target_t *target;
+	my_target_impl_t *impl;
+
+	impl = my_target_impl_find(conf);
+	if (!impl) {
+		return NULL;
+	}
+
+	target = impl->create(conf);
+	if (!target) {
+		my_log(MY_LOG_ERROR, "core/target: error creating target #%d '%s'", conf->index, conf->name);
+		return NULL;
+	}
+
+	MY_TARGET_GET_IMPL(target) = impl;
+
+	return target;
+}
+
+void my_target_destroy(my_target_t *target)
+{
+	MY_TARGET_GET_IMPL(target)->destroy(target);
+}
+
 static int my_target_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
 	my_target_t *target;
 	my_target_conf_t *conf = MY_TARGET_CONF(data);
-	my_target_impl_t *impl;
 
-	impl = my_target_find_impl(conf);
-	if (!impl) {
-		return 0;
+	target = my_target_create(conf);
+	if (target) {
+		my_list_enqueue(core->targets, target);
+		target->core = core;
 	}
-
-	target = impl->create(core, conf);
-	if (!target) {
-		my_log(MY_LOG_ERROR, "core/target: error creating target #%d '%s'", conf->index, conf->name);
-		return 0;
-	}
-
-	MY_TARGET_GET_IMPL(target) = impl;
-	my_list_enqueue(core->targets, target);
 
 	return 0;
 }
@@ -193,7 +209,7 @@ int my_target_close_all(my_core_t *core)
 }
 
 
-static void my_target_register(my_core_t *core, my_target_impl_t *target)
+void my_target_register(my_core_t *core, my_target_impl_t *target)
 {
 	my_list_enqueue(&my_targets, target);
 }

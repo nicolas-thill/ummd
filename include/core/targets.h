@@ -52,4 +52,19 @@ struct my_target_conf_s {
 #define MY_TARGET_GET_CORE(p) (MY_TARGET(p)->core)
 #define MY_TARGET_GET_CONF(p) (MY_TARGET(p)->conf)
 
+extern my_target_t *my_target_create(my_target_conf_t *conf);
+extern void my_target_destroy(my_target_t *target);
+
+extern int my_target_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_target_destroy_all(my_core_t *core);
+
+extern int my_target_open_all(my_core_t *core);
+extern int my_target_close_all(my_core_t *core);
+
+extern void my_target_register_all(void);
+
+#ifdef MY_DEBUGGING
+extern void my_target_dump_all(void);
+#endif
+
 #endif /* __MY_TARGETS_H */

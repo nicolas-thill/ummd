@@ -52,4 +52,19 @@ struct my_source_conf_s {
 #define MY_SOURCE_GET_CORE(p) (MY_SOURCE(p)->core)
 #define MY_SOURCE_GET_CONF(p) (MY_SOURCE(p)->conf)
 
+extern my_source_t *my_source_create(my_source_conf_t *conf);
+extern void my_source_destroy(my_source_t *source);
+
+extern int my_source_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_source_destroy_all(my_core_t *core);
+
+extern int my_source_open_all(my_core_t *core);
+extern int my_source_close_all(my_core_t *core);
+
+extern void my_source_register_all(void);
+
+#ifdef MY_DEBUGGING
+extern void my_source_dump_all(void);
+#endif
+
 #endif /* __MY_SOURCES_H */

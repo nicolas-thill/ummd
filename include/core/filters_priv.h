@@ -28,7 +28,7 @@
 typedef struct my_filter_impl_s my_filter_impl_t;
 typedef struct my_filter_priv_s my_filter_priv_t;
 
-typedef my_filter_t *(*my_filter_create_fn_t)(my_core_t *core, my_filter_conf_t *conf);
+typedef my_filter_t *(*my_filter_create_fn_t)(my_filter_conf_t *conf);
 typedef void (*my_filter_destroy_fn_t)(my_filter_t *filter);
 
 struct my_filter_impl_s {
@@ -48,16 +48,9 @@ struct my_filter_priv_s {
 
 #define MY_FILTER_GET_IMPL(p) (MY_FILTER_PRIV(p)->impl)
 
-extern my_filter_t *my_filter_create(my_core_t *core, my_filter_conf_t *conf, size_t size);
-extern void my_filter_destroy(my_filter_t *filter);
+extern my_filter_t *my_filter_priv_create(my_filter_conf_t *conf, size_t size);
+extern void my_filter_priv_destroy(my_filter_t *filter);
 
-extern int my_filter_create_all(my_core_t *core, my_conf_t *conf);
-extern int my_filter_destroy_all(my_core_t *core);
-
-extern void my_filter_register_all(void);
-
-#ifdef MY_DEBUGGING
-extern void my_filter_dump_all(void);
-#endif
+extern void my_filter_register(my_filter_impl_t *filter);
 
 #endif /* __MY_FILTERS_PRIV_H */

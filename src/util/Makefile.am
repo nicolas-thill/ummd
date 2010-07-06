@@ -7,4 +7,5 @@ noinst_LTLIBRARIES = libutil.la
 libutil_la_SOURCES = \
 	list.c \
 	log.c \
-	mem.c
+	mem.c \
+	rbuf.c

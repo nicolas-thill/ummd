@@ -8,4 +8,5 @@ libutil_la_SOURCES = \
 	list.c \
 	log.c \
 	mem.c \
+	prop.c \
 	rbuf.c

@@ -105,20 +105,22 @@ my_core_t *my_core_create(void)
 		goto _MY_ERR_event_base_new;
 	}
 
+	my_log(MY_LOG_NOTICE, "core: using '%s' kernel event notification mechanism", event_base_get_method(MY_CORE_PRIV(core)->event_base));
+
 	event_set(&(MY_CORE_PRIV(core)->event_sigint), SIGINT, EV_SIGNAL, my_core_handle_shutdown, core);
-	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigint)) != 0) {
+	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigint), NULL) != 0) {
 		MY_ERROR("core: error installing INT signal handler");
 		goto _MY_ERR_add_event_sigint;
 	}
 
 	event_set(&(MY_CORE_PRIV(core)->event_sigquit), SIGQUIT, EV_SIGNAL, my_core_handle_shutdown, core);
-	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigquit)) != 0) {
+	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigquit), NULL) != 0) {
 		MY_ERROR("core: error installing QUIT signal handler");
 		goto _MY_ERR_add_event_sigquit;
 	}
 
 	event_set(&(MY_CORE_PRIV(core)->event_sigterm), SIGTERM, EV_SIGNAL, my_core_handle_shutdown, core);
-	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigterm)) != 0 ) {
+	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigterm), NULL) != 0 ) {
 		MY_ERROR("core: error installing TERM signal handler");
 		goto _MY_ERR_add_event_sigterm;
 	}
@@ -231,12 +233,12 @@ void my_core_loop(my_core_t *core)
 	event_base_dispatch(MY_CORE_PRIV(core)->event_base);
 }
 
-int my_core_event_add(my_core_t *core, struct event *event)
+int my_core_event_add(my_core_t *core, struct event *event, struct timeval *tv)
 {
 	if (event_base_set(MY_CORE_PRIV(core)->event_base, event) != 0) {
 		return -1;
 	}
-	if (event_add(event, NULL) != 0) {
+	if (event_add(event, tv) != 0) {
 		return -1;
 	}
 

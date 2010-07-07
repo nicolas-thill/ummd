@@ -134,8 +134,8 @@ static int my_control_fifo_open(my_control_t *control)
 	}
 
 	event_set(&(MY_CONTROL_DATA(control)->event), MY_CONTROL_DATA(control)->fd, EV_READ | EV_PERSIST, my_control_fifo_event_handler, control);
-	my_core_event_add(control->core, &(MY_CONTROL_DATA(control)->event));
-	
+	my_core_event_add(control->core, &(MY_CONTROL_DATA(control)->event), NULL);
+
 	return 0;
 
 _MY_ERR_open_fifo:

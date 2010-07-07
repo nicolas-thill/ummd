@@ -36,14 +36,14 @@ my_rbuf_t *my_rbuf_create(int size)
 		goto _MY_ERR_alloc;
 	}
 
-	rbuf->data = my_mem_alloc(size + 1);
+	rbuf->size = size + 1;
+	rbuf->off_get = 0;
+	rbuf->off_put = 0;
+	
+	rbuf->data = my_mem_alloc(rbuf->size);
 	if( !(rbuf->data)) {
 		goto _MY_ERR_alloc_data;
 	}
-	
-	rbuf->size = size;
-	rbuf->off_get = 0;
-	rbuf->off_put = 0;
 	
 	return rbuf;
 

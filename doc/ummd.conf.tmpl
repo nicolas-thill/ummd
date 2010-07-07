@@ -40,12 +40,12 @@ targets = (
 wirings = (
 
 	/* connect output of source #0 to input of target #0 */
-	{ source = "sources/0"; target = "targets/0"; },
+	{ source = "sources[0].ports[0]"; target = "targets[0].ports[0]"; },
 
 	/* connect output of source #0 to input of filter #0 */
-	{ source = "sources/0"; target = "filters/0"; },
+	{ source = "sources[0].ports[0]"; target = "filters[0].ports[0]"; },
 	/* connect output of filter #0 to input of target #0 */
-	{ source = "filters/0"; target = "targets/0"; }
+	{ source = "filters[0].ports[0]"; target = "targets[0].port[0]"; }
 	
 );
 

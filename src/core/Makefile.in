@@ -51,11 +51,8 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 libcore_la_DEPENDENCIES = controls/libcontrols.la \
 	filters/libfilters.la sources/libsources.la \
 	targets/libtargets.la
-am_libcore_la_OBJECTS = libcore_la-main.lo
+am_libcore_la_OBJECTS = main.lo
 libcore_la_OBJECTS = $(am_libcore_la_OBJECTS)
-libcore_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libcore_la_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/autotools/depcomp
 am__depfiles_maybe = depfiles
@@ -153,8 +150,6 @@ LIBAVUTIL_CFLAGS = @LIBAVUTIL_CFLAGS@
 LIBAVUTIL_LIBS = @LIBAVUTIL_LIBS@
 LIBCONFIG_CFLAGS = @LIBCONFIG_CFLAGS@
 LIBCONFIG_LIBS = @LIBCONFIG_LIBS@
-LIBEVENT_CFLAGS = @LIBEVENT_CFLAGS@
-LIBEVENT_LIBS = @LIBEVENT_LIBS@
 LIBLO_CFLAGS = @LIBLO_CFLAGS@
 LIBLO_LIBS = @LIBLO_LIBS@
 LIBOBJS = @LIBOBJS@
@@ -246,15 +241,11 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = controls filters sources targets
 noinst_LTLIBRARIES = libcore.la
-libcore_la_CFLAGS = \
-	@LIBEVENT_CFLAGS@
-
 libcore_la_LIBADD = \
 	controls/libcontrols.la \
 	filters/libfilters.la \
 	sources/libsources.la \
-	targets/libtargets.la \
-	@LIBEVENT_LIBS@
+	targets/libtargets.la
 
 libcore_la_SOURCES = \
 	main.c
@@ -303,7 +294,7 @@ clean-noinstLTLIBRARIES:
 	  rm -f "$${dir}/so_locations"; \
 	done
 libcore.la: $(libcore_la_OBJECTS) $(libcore_la_DEPENDENCIES) 
-	$(libcore_la_LINK)  $(libcore_la_OBJECTS) $(libcore_la_LIBADD) $(LIBS)
+	$(LINK)  $(libcore_la_OBJECTS) $(libcore_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -311,7 +302,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcore_la-main.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -333,13 +324,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
-
-libcore_la-main.lo: main.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcore_la_CFLAGS) $(CFLAGS) -MT libcore_la-main.lo -MD -MP -MF $(DEPDIR)/libcore_la-main.Tpo -c -o libcore_la-main.lo `test -f 'main.c' || echo '$(srcdir)/'`main.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libcore_la-main.Tpo $(DEPDIR)/libcore_la-main.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='libcore_la-main.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcore_la_CFLAGS) $(CFLAGS) -c -o libcore_la-main.lo `test -f 'main.c' || echo '$(srcdir)/'`main.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

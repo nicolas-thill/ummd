@@ -11,9 +11,6 @@ Requirements
  - libconfig
    http://www.hyperrealm.com/libconfig/
    
- - libevent
-   http://monkey.org/~provos/libevent/
-   
  - liblo
    http://liblo.sourceforge.net/
 

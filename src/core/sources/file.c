@@ -46,6 +46,13 @@ struct my_source_data_s {
 #define MY_SOURCE_DATA(p) ((my_source_data_t *)(p))
 #define MY_SOURCE_DATA_SIZE (sizeof(my_source_data_t))
 
+static void my_source_file_event_handler(int fd, void *p)
+{
+	my_source_t *source = (my_source_t *)p;
+
+	/* do something */
+}
+
 static my_source_t *my_source_file_create(my_source_conf_t *conf)
 {
 	my_source_t *source;
@@ -101,10 +108,9 @@ static int my_source_file_open(my_source_t *source)
 		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE_DATA(source)->path, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
-/*
-	event_set(&(MY_SOURCE_DATA(source)->event), MY_SOURCE_DATA(source)->fd, EV_READ | EV_PERSIST, my_source_file_event_handler, source);
-	my_core_event_add(source->core, &(MY_SOURCE_DATA(source)->event));
-*/
+
+	my_core_event_handler_add(source->core, MY_SOURCE_DATA(source)->fd, my_source_file_event_handler, source);
+
 	return 0;
 
 _MY_ERR_open_file:
@@ -113,9 +119,8 @@ _MY_ERR_open_file:
 
 static int my_source_file_close(my_source_t *source)
 {
-/*
-	my_core_event_del(source->core, &(MY_SOURCE_DATA(source)->event));
-*/
+	my_core_event_handler_del(source->core, MY_SOURCE_DATA(source)->fd);
+
 	MY_DEBUG("core/source: closing file '%s'", MY_SOURCE_DATA(source)->path);
 	if (close(MY_SOURCE_DATA(source)->fd) == -1) {
 		my_log(MY_LOG_ERROR, "core/source: error closing file '%s' (%s)", MY_SOURCE_DATA(source)->path, strerror(errno));

@@ -25,6 +25,8 @@
 
 #include "core/controls.h"
 
+#include <stdlib.h>
+
 typedef struct my_control_impl_s my_control_impl_t;
 typedef struct my_control_priv_s my_control_priv_t;
 

@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <event.h>
-
 #include "core.h"
 
 #include "core/controls.h"
@@ -41,17 +39,14 @@ typedef struct my_core_priv my_core_priv_t;
 
 struct my_core_priv {
 	my_core_t base;
-	struct event_base *event_base;
-	struct event event_sigint;
-	struct event event_sigquit;
-	struct event event_sigterm;
+	int running;
 };
 
 #define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
 
 static void my_core_exit(my_core_t *core)
 {
-	event_base_loopexit(MY_CORE_PRIV(core)->event_base, NULL);
+	MY_CORE_PRIV(core)->running = 0;
 }
 
 static void my_core_handle_shutdown(int sig, short event, void *p)
@@ -94,48 +89,8 @@ my_core_t *my_core_create(void)
 		goto _MY_ERR_create_targets;
 	}
 
-	if (event_init() == NULL) {
-		MY_ERROR("core: error initializing event handling library");
-		goto _MY_ERR_event_init;
-	}
-	
-	MY_CORE_PRIV(core)->event_base = event_base_new();
-	if (MY_CORE_PRIV(core)->event_base == NULL) {
-		MY_ERROR("core: error initializing event handling library");
-		goto _MY_ERR_event_base_new;
-	}
-
-	my_log(MY_LOG_NOTICE, "core: using '%s' kernel event notification mechanism", event_base_get_method(MY_CORE_PRIV(core)->event_base));
-
-	event_set(&(MY_CORE_PRIV(core)->event_sigint), SIGINT, EV_SIGNAL, my_core_handle_shutdown, core);
-	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigint), NULL) != 0) {
-		MY_ERROR("core: error installing INT signal handler");
-		goto _MY_ERR_add_event_sigint;
-	}
-
-	event_set(&(MY_CORE_PRIV(core)->event_sigquit), SIGQUIT, EV_SIGNAL, my_core_handle_shutdown, core);
-	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigquit), NULL) != 0) {
-		MY_ERROR("core: error installing QUIT signal handler");
-		goto _MY_ERR_add_event_sigquit;
-	}
-
-	event_set(&(MY_CORE_PRIV(core)->event_sigterm), SIGTERM, EV_SIGNAL, my_core_handle_shutdown, core);
-	if (my_core_event_add(core, &(MY_CORE_PRIV(core)->event_sigterm), NULL) != 0 ) {
-		MY_ERROR("core: error installing TERM signal handler");
-		goto _MY_ERR_add_event_sigterm;
-	}
-
 	return core;
 
-	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigterm));
-_MY_ERR_add_event_sigterm:
-	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigquit));
-_MY_ERR_add_event_sigquit:
-	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigint));
-_MY_ERR_add_event_sigint:
-	event_base_free(MY_CORE_PRIV(core)->event_base);
-_MY_ERR_event_base_new:
-_MY_ERR_event_init:
 	my_list_destroy(core->targets);
 _MY_ERR_create_targets:
 	my_list_destroy(core->sources);
@@ -159,12 +114,6 @@ void my_core_destroy(my_core_t *core)
 	my_source_destroy_all(core);
 	my_filter_destroy_all(core);
 	my_control_destroy_all(core);
-
-	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigint));
-	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigquit));
-	my_core_event_del(core, &(MY_CORE_PRIV(core)->event_sigterm));
-
-	event_base_free(MY_CORE_PRIV(core)->event_base);
 
 	my_list_destroy(core->controls);
 	my_list_destroy(core->filters);
@@ -230,26 +179,23 @@ _MY_ERR_create_controls:
 
 void my_core_loop(my_core_t *core)
 {
-	event_base_dispatch(MY_CORE_PRIV(core)->event_base);
+	MY_CORE_PRIV(core)->running = 1;
+	while (MY_CORE_PRIV(core)->running) {
+		/* do something */
+		sleep(1);
+	}
 }
 
-int my_core_event_add(my_core_t *core, struct event *event, struct timeval *tv)
+int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handler, void *p)
 {
-	if (event_base_set(MY_CORE_PRIV(core)->event_base, event) != 0) {
-		return -1;
-	}
-	if (event_add(event, tv) != 0) {
-		return -1;
-	}
+	/* do something */
 
 	return 0;
 }
 
-int my_core_event_del(my_core_t *p, struct event *event)
+int my_core_event_handler_del(my_core_t *p, int fd)
 {
-	if (event_del(event) != 0) {
-		return -1;
-	}
+	/* do something */
 
 	return 0;
 }

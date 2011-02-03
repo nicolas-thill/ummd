@@ -28,7 +28,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <event.h>
 #include <libavformat/avformat.h>
 
 #include "core/controls_priv.h"
@@ -42,7 +41,6 @@ struct my_control_data_s {
 	my_control_priv_t shared;
 	char *path;
 	int fd;
-	struct event event;
 };
 
 #define MY_CONTROL_DATA(p) ((my_control_data_t *)(p))
@@ -51,7 +49,7 @@ struct my_control_data_s {
 
 #define MY_CONTROL_BUF_SIZE  255
 
-static void my_control_fifo_event_handler(int fd, short event, void *p)
+static void my_control_fifo_event_handler(int fd, void *p)
 {
 	my_control_t *control = (my_control_t *)p;
 	char buf[MY_CONTROL_BUF_SIZE + 1];
@@ -133,8 +131,7 @@ static int my_control_fifo_open(my_control_t *control)
 		goto _MY_ERR_open_fifo;
 	}
 
-	event_set(&(MY_CONTROL_DATA(control)->event), MY_CONTROL_DATA(control)->fd, EV_READ | EV_PERSIST, my_control_fifo_event_handler, control);
-	my_core_event_add(control->core, &(MY_CONTROL_DATA(control)->event), NULL);
+	my_core_event_handler_add(control->core, MY_CONTROL_DATA(control)->fd, my_control_fifo_event_handler, control);
 
 	return 0;
 
@@ -145,7 +142,7 @@ _MY_ERR_create_fifo:
 
 static int my_control_fifo_close(my_control_t *control)
 {
-	my_core_event_del(control->core, &(MY_CONTROL_DATA(control)->event));
+	my_core_event_handler_del(control->core, MY_CONTROL_DATA(control)->fd);
 
 	MY_DEBUG("core/control: closing fifo '%s'", MY_CONTROL_DATA(control)->path);
 	if (close(MY_CONTROL_DATA(control)->fd) == -1) {

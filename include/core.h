@@ -25,8 +25,6 @@
 
 #include <sys/time.h>
 
-#include <event.h>
-
 #include "autoconf.h"
 
 #include "conf.h"
@@ -51,8 +49,10 @@ extern void my_core_destroy(my_core_t *core);
 extern int my_core_init(my_core_t *core, my_conf_t *conf);
 extern void my_core_loop(my_core_t *core);
 
-extern int my_core_event_add(my_core_t *core, struct event *event, struct timeval *tv);
-extern int my_core_event_del(my_core_t *core, struct event *event);
+typedef int (*my_event_handler_t)(int fd, void *p);
+
+extern int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handler, void *p);
+extern int my_core_event_handler_del(my_core_t *core, int fd);
 
 extern int my_core_handle_command(my_core_t *core, char *command);
 

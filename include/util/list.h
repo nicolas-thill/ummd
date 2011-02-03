@@ -54,4 +54,12 @@ extern int my_list_enqueue(my_list_t *list, void *data);
 
 extern void my_list_purge(my_list_t *list, int flags);
 
+/**
+ * my_list_for_each - iterate over a list
+ * @pos:              the struct my_node to use as a loop cursor.
+ * list:              the head for your list.
+ */
+#define my_list_for_each(entry, pos, list) \
+	for (pos = (list)->head; pos && (entry = pos->data); pos = pos->next)
+
 #endif /* __MY_UTIL_LIST_H */

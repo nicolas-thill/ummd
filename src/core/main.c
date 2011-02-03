@@ -34,12 +34,23 @@
 
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/list.h"
+#include <err.h>
 
 typedef struct my_core_priv my_core_priv_t;
 
 struct my_core_priv {
 	my_core_t base;
 	int running;
+	fd_set watching_fds;
+	int max_sock;
+	my_list_t *watched_fd_list;
+};
+
+struct watch_entry {
+	int fd;
+	my_event_handler_t callback_fn;
+	void *data;
 };
 
 #define MY_CORE_PRIV(p) ((my_core_priv_t *)p)
@@ -55,16 +66,38 @@ static void my_core_handle_shutdown(int sig, short event, void *p)
 	my_core_exit(MY_CORE(p));
 }
 
+static void my_core_watched_fds_update(my_core_t *core)
+{
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+	struct watch_entry *watch_entry;
+	my_node_t *node;
+	int tmp_max_sock = 0;
+	fd_set tmp_watched_fds;
+
+	FD_ZERO(&tmp_watched_fds);
+
+	my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+		if (watch_entry->fd > tmp_max_sock)
+			tmp_max_sock = watch_entry->fd;
+
+		FD_SET(watch_entry->fd, &tmp_watched_fds);
+	}
+
+	core_priv->max_sock = tmp_max_sock;
+	memcpy(&core_priv->watching_fds, &tmp_watched_fds, sizeof(fd_set));
+}
+
 my_core_t *my_core_create(void)
 {
 	my_core_t *core;
+	my_core_priv_t *core_priv;
 
 	core = my_mem_alloc(sizeof(my_core_priv_t));
 	if (!core) {
 		MY_ERROR("core: error creating internal data (%s)" , strerror(errno));
 		goto _MY_ERR_alloc;
 	}
-	
+
 	core->controls = my_list_create();
 	if (core->controls == NULL) {
 		MY_ERROR("core: error creating control list (%s)" , strerror(errno));
@@ -89,8 +122,20 @@ my_core_t *my_core_create(void)
 		goto _MY_ERR_create_targets;
 	}
 
+	core_priv = MY_CORE_PRIV(core);
+
+	core_priv->watched_fd_list = my_list_create();
+	if (!core_priv->watched_fd_list) {
+		MY_ERROR("core: error creating watched fd list (%s)" , strerror(errno));
+		goto _MY_ERR_create_watched_fds;
+	}
+
+	FD_ZERO(&core_priv->watching_fds);
+	core_priv->max_sock = 0;
 	return core;
 
+	my_list_destroy(core_priv->watched_fd_list);
+_MY_ERR_create_watched_fds:
 	my_list_destroy(core->targets);
 _MY_ERR_create_targets:
 	my_list_destroy(core->sources);
@@ -179,18 +224,75 @@ _MY_ERR_create_controls:
 
 void my_core_loop(my_core_t *core)
 {
-	MY_CORE_PRIV(core)->running = 1;
-	while (MY_CORE_PRIV(core)->running) {
-		/* do something */
-		sleep(1);
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+	my_node_t *node;
+	struct watch_entry *watch_entry;
+	fd_set tmp_watched_fds;
+	struct timeval tv;
+	int ret, timeout = 1000;
+
+	core_priv->running = 1;
+
+	while (core_priv->running) {
+
+		memcpy(&tmp_watched_fds, &core_priv->watching_fds, sizeof(fd_set));
+		tv.tv_sec = timeout / 1000;
+		tv.tv_usec = (timeout % 1000) * 1000;
+
+		ret = select(core_priv->max_sock + 1, &tmp_watched_fds, NULL, NULL, &tv);
+
+		/* timeout occurred */
+		if (ret == 0)
+			continue;
+
+		if (ret < 0) {
+			if (errno != EINTR)
+				my_log(MY_LOG_NOTICE, "core: select error '%s'", strerror(errno));
+
+			continue;
+		}
+
+		my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+
+			if (!FD_ISSET(watch_entry->fd, &tmp_watched_fds))
+				continue;
+
+			(watch_entry->callback_fn)(watch_entry->fd, watch_entry->data);
+		}
 	}
 }
 
 int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handler, void *p)
 {
-	/* do something */
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+	struct watch_entry *watch_entry;
+	my_node_t *node;
 
+	my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+
+		if (watch_entry->fd != fd)
+			continue;
+
+		my_log(MY_LOG_NOTICE, "core: trying to register an already watched fd: '%i'", fd);
+		goto err;
+	}
+
+	watch_entry = my_mem_alloc(sizeof(struct watch_entry));
+	if (!watch_entry) {
+		my_log(MY_LOG_NOTICE, "core: error creating register data (%s)" , strerror(errno));
+		goto err;
+	}
+
+	watch_entry->fd = fd;
+	watch_entry->callback_fn = handler;
+	watch_entry->data = p;
+
+	my_list_enqueue(core_priv->watched_fd_list, watch_entry);
+	my_core_watched_fds_update(core);
 	return 0;
+
+err:
+	return -1;
 }
 
 int my_core_event_handler_del(my_core_t *p, int fd)

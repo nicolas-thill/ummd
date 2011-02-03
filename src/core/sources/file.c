@@ -28,7 +28,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <event.h>
 #include <libavformat/avformat.h>
 
 #include "core/sources_priv.h"
@@ -42,7 +41,6 @@ struct my_source_data_s {
 	my_source_priv_t _inherited;
 	char *path;
 	int fd;
-	struct event event;
 };
 
 #define MY_SOURCE_DATA(p) ((my_source_data_t *)(p))

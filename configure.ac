@@ -47,34 +47,6 @@ AC_CHECK_LIB(
 	[MY_LIBS="$MY_LIBS -lpthread"]
 )
 
-AC_CHECK_LIB(
-	[rt],
-	[clock_gettime],
-	[libevent_extra_libs="-lrt"],
-	[libevent_extra_libs=""]
-)
-
-AC_CHECK_HEADER(
-	[event.h],
-	[libevent_headers_found=yes],
-	[libevent_headers_found=no]
-)
-AC_CHECK_LIB(
-	[event],
-	[event_init],
-	[libevent_found=yes],
-	[libevent_found=no],
-	[$libevent_extra_libs]
-)
-if test "x$libevent_headers_found" = "xyes" -a "x$libevent_found" = "xyes" ; then
-	LIBEVENT_CFLAGS=""
-	LIBEVENT_LIBS="-levent $libevent_extra_libs"
-else
-	AC_MSG_ERROR([libevent not found])
-fi
-AC_ARG_VAR([LIBEVENT_CFLAGS], [C compiler flags for LIBEVENT])
-AC_ARG_VAR([LIBEVENT_LIBS], [linker flags for LIBEVENT])
-
 PKG_CHECK_MODULES(LIBAVCODEC, libavcodec >= 52)
 PKG_CHECK_MODULES(LIBAVDEVICE, libavdevice >= 52)
 PKG_CHECK_MODULES(LIBAVFORMAT, libavformat >= 52)

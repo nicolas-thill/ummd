@@ -23,13 +23,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libavformat/avformat.h>
-
 #include "core/targets_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/url.h"
 
 static my_list_t my_targets;
 
@@ -49,7 +48,7 @@ static my_target_impl_t *my_target_impl_find(my_target_conf_t *conf)
 	char buf[255];
 
 	impl_name = "file";
-	url_split(
+	my_url_split(
 		url_prot, sizeof(url_prot),
 		NULL, 0, /* auth */
 		url_host, sizeof(url_host),

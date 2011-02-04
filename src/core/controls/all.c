@@ -23,13 +23,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <libavformat/avformat.h>
-
 #include "core/controls_priv.h"
 
 #include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/url.h"
 
 static my_list_t my_controls;
 
@@ -47,7 +46,7 @@ static my_control_impl_t *my_control_impl_find(my_control_conf_t *conf)
 
 	impl_name = conf->type;
 	if (!impl_name) {
-		url_split(
+		my_url_split(
 			url_prot, sizeof(url_prot),
 			NULL, 0, /* auth */
 			NULL, 0, /* hostname */

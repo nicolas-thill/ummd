@@ -28,12 +28,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <libavformat/avformat.h>
-
 #include "core/controls_priv.h"
 
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/url.h"
 
 typedef struct my_control_data_s my_control_data_t;
 
@@ -80,7 +79,7 @@ static my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 		goto _MY_ERR_alloc;
 	}
 
-	url_split(
+	my_url_split(
 		url_prot, sizeof(url_prot),
 		NULL, 0, /* auth */
 		NULL, 0, /* hostname */

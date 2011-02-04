@@ -151,6 +151,8 @@ _MY_ERR_alloc:
 
 void my_core_destroy(my_core_t *core)
 {
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+
 	my_target_close_all(core);
 	my_source_close_all(core);
 	my_control_close_all(core);
@@ -165,6 +167,7 @@ void my_core_destroy(my_core_t *core)
 	my_list_destroy(core->sources);
 	my_list_destroy(core->targets);
 
+	my_list_destroy(core_priv->watched_fd_list);
 	my_mem_free(core);
 }
 
@@ -247,7 +250,7 @@ void my_core_loop(my_core_t *core)
 
 		if (ret < 0) {
 			if (errno != EINTR)
-				my_log(MY_LOG_NOTICE, "core: select error '%s'", strerror(errno));
+				my_log(MY_LOG_ERROR, "core: select error '%s'", strerror(errno));
 
 			continue;
 		}
@@ -273,13 +276,13 @@ int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handle
 		if (watch_entry->fd != fd)
 			continue;
 
-		my_log(MY_LOG_NOTICE, "core: trying to register an already watched fd: '%i'", fd);
+		my_log(MY_LOG_ERROR, "core: trying to register an already watched fd: '%i'", fd);
 		goto err;
 	}
 
 	watch_entry = my_mem_alloc(sizeof(struct watch_entry));
 	if (!watch_entry) {
-		my_log(MY_LOG_NOTICE, "core: error creating register data (%s)" , strerror(errno));
+		my_log(MY_LOG_ERROR, "core: error creating register data (%s)" , strerror(errno));
 		goto err;
 	}
 
@@ -295,11 +298,31 @@ err:
 	return -1;
 }
 
-int my_core_event_handler_del(my_core_t *p, int fd)
+int my_core_event_handler_del(my_core_t *core, int fd)
 {
-	/* do something */
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+	struct watch_entry *watch_entry;
+	my_node_t *node;
 
+	my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+		if (watch_entry->fd == fd)
+			break;
+
+		watch_entry = NULL;
+	}
+
+	if (!watch_entry) {
+		my_log(MY_LOG_ERROR, "core: error unregistering fd: unknown fd (%i)" , fd);
+		goto err;
+	}
+
+	my_list_remove(node);
+	my_mem_free(watch_entry);
+	my_core_watched_fds_update(core);
 	return 0;
+
+err:
+	return -1;
 }
 
 int my_core_handle_command(my_core_t *core, char *command)

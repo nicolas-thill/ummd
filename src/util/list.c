@@ -87,9 +87,9 @@ static my_node_t *my_list_remove_tail(my_list_t *list)
 my_list_t *my_list_create(void)
 {
 	my_list_t *list;
-	
+
 	list = my_mem_alloc(sizeof(*list));
-	
+
 	return list;
 }
 
@@ -118,7 +118,7 @@ void *my_list_dequeue(my_list_t *list)
 {
 	my_node_t *node;
 	void *data;
-	
+
 	node = my_list_remove_tail(list);
 	if (node) {
 		data = node->data;
@@ -129,17 +129,27 @@ void *my_list_dequeue(my_list_t *list)
 	return NULL;
 }
 
+void my_list_remove(my_node_t *node)
+{
+	if (node->next)
+		node->next->prev = node->prev;
+
+	if (node->prev)
+		node->prev->next = node->next;
+	my_mem_free(node);
+}
+
 int my_list_enqueue(my_list_t *list, void *data)
 {
 	my_node_t *node;
-	
+
 	node = my_mem_alloc(sizeof(*node));
 	if (node) {
 		my_list_add_tail(list, node);
 		node->data = data;
 		return 0;
 	}
-	
+
 	return -1;
 }
 
@@ -167,7 +177,7 @@ int my_list_iter(my_list_t *list, my_list_iter_fn_t func, void *user)
 void my_list_purge(my_list_t *list, int flags)
 {
 	void *data;
-	
+
 	while (data = my_list_dequeue(list)) {
 		if (flags & MY_LIST_PURGE_FLAG_FREE_DATA) {
 			my_mem_free(data);

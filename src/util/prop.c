@@ -79,6 +79,7 @@ int my_prop_add(my_list_t *list, char *name, char *value)
 	if (!p) {
 		goto _MY_ERR_set_value;
 	}
+	prop->value = p;
 	if (my_list_enqueue(list, prop) != 0) {
 		goto _MY_ERR_add;
 	}

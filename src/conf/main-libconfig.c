@@ -40,7 +40,7 @@ static char *my_conf_get_default_name(char *s, int n)
 {
 	char buf[1024];
 
-	snprintf(buf, sizeof(buf), "%s/%d", s, n);
+	snprintf(buf, sizeof(buf), "%ss[%d]", s, n);
 
 	return strdup(buf);
 }

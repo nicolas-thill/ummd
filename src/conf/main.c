@@ -45,7 +45,7 @@ static int my_conf_dump_port_fn(void *data, void *user, int flags)
 	my_port_conf_t *port = (my_port_conf_t *)data;
 	char *class = (char *)user;
 
-	MY_DEBUG("\t%s[%d] = {", class, port->index);
+	MY_DEBUG("\t%s #%d = {", class, port->index);
 	MY_DEBUG("\t\tname=\"%s\";", port->name);
 	my_prop_iter(port->properties, my_conf_dump_port_properties_fn, NULL);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
@@ -57,7 +57,7 @@ static int my_conf_dump_wiring_fn(void *data, void *user, int flags)
 {
 	my_wiring_conf_t *wiring = (my_wiring_conf_t *)data;
 
-	MY_DEBUG("\twiring[%d] = {", wiring->index);
+	MY_DEBUG("\twiring #%d = {", wiring->index);
 	MY_DEBUG("\t\tname=\"%s\";", wiring->name);
 	MY_DEBUG("\t\tsource=\"%s\";", wiring->source);
 	MY_DEBUG("\t\ttarget=\"%s\";", wiring->target);

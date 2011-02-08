@@ -51,7 +51,7 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 libcore_la_DEPENDENCIES = controls/libcontrols.la \
 	filters/libfilters.la sources/libsources.la \
 	targets/libtargets.la
-am_libcore_la_OBJECTS = main.lo
+am_libcore_la_OBJECTS = main.lo ports.lo
 libcore_la_OBJECTS = $(am_libcore_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/autotools/depcomp
@@ -248,7 +248,8 @@ libcore_la_LIBADD = \
 	targets/libtargets.la
 
 libcore_la_SOURCES = \
-	main.c
+	main.c \
+	ports.c
 
 all: all-recursive
 
@@ -303,6 +304,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ports.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

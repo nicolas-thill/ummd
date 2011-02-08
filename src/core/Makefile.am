@@ -13,4 +13,5 @@ libcore_la_LIBADD = \
 	targets/libtargets.la
 
 libcore_la_SOURCES = \
-	main.c
+	main.c \
+	ports.c

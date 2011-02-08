@@ -31,4 +31,9 @@ extern char *my_prop_lookup(my_list_t *list, char *name);
 
 extern void my_prop_purge(my_list_t *list);
 
+
+typedef int (*my_prop_iter_fn_t)(char *name, char *value, void *user, int flags);
+
+extern int my_prop_iter(my_list_t *list, my_prop_iter_fn_t func, void *user);
+
 #endif /* __MY_UTIL_PROP_H */

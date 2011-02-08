@@ -21,6 +21,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "util/prop.h"
 
@@ -118,4 +119,27 @@ void my_prop_purge(my_list_t *list)
 		free(prop->value);
 		my_mem_free(prop);
 	}
+}
+
+int my_prop_iter(my_list_t *list, my_prop_iter_fn_t func, void *user)
+{
+	my_node_t *node;
+	my_prop_t *prop;
+	int flags;
+	int rc;
+
+	flags = MY_LIST_ITER_FLAG_FIRST;
+	for (node = list->head; node; node = node->next) {
+		if (!(node->next)) {
+			flags |= MY_LIST_ITER_FLAG_LAST;
+		}
+		prop = MY_PROP(node->data);
+		rc = (func)(prop->name, prop->value, user, flags);
+		if (rc) {
+			return rc;
+		}
+		flags &= ~MY_LIST_ITER_FLAG_FIRST;
+	}
+
+	return 0;
 }

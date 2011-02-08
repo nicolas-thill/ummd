@@ -91,7 +91,7 @@ static my_port_t *my_source_file_create(my_port_conf_t *conf)
 
 	free(MY_SOURCE_DATA(source)->path);
 _MY_ERR_parse_url:
-	my_source_priv_destroy(source);
+	my_port_priv_destroy(source);
 _MY_ERR_create_source:
 	return NULL;
 }

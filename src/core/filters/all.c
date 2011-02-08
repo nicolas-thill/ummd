@@ -33,13 +33,12 @@ static my_list_t my_filters;
 
 #define MY_FILTER_REGISTER(x) { \
 	extern my_port_impl_t my_filter_##x; \
-	my_filter_register(&my_filter_##x); \
+	my_port_impl_register(&my_filters, &my_filter_##x); \
 }
 
 static my_port_impl_t *my_filter_impl_find(my_port_conf_t *conf)
 {
 	my_port_impl_t *impl;
-	my_node_t *node;
 	char *impl_name;
 
 	impl_name = my_prop_lookup(conf->properties, "type");
@@ -47,79 +46,31 @@ static my_port_impl_t *my_filter_impl_find(my_port_conf_t *conf)
 		impl_name = "null";
 	}
 
-	for (node = my_filters.head; node; node = node->next) {
-		impl = MY_PORT_IMPL(node->data);
-		if (strcmp(impl->name, impl_name) == 0) {
-			return impl;
-		}
-	}
-
-	my_log(MY_LOG_ERROR, "core/filter: unknown type '%s' for filter #%d '%s'", impl_name, conf->index, conf->name);
-
-	return NULL;
-}
-
-
-my_port_t *my_filter_priv_create(my_port_conf_t *conf, size_t size)
-{
-	my_port_t *filter;
-
-	filter = my_mem_alloc(size);
-	if (!filter) {
-		goto _MY_ERR_alloc;
-	}
-
-	filter->conf = conf;
-
-	return filter;
-
-	my_mem_free(filter);
-_MY_ERR_alloc:
-	return NULL;
-}
-
-void my_filter_priv_destroy(my_port_t *filter)
-{
-	my_mem_free(filter);
-}
-
-
-my_port_t *my_filter_create(my_port_conf_t *conf)
-{
-	my_port_t *filter;
-	my_port_impl_t *impl;
-
-	impl = my_filter_impl_find(conf);
+	impl = my_port_impl_lookup(&my_filters, impl_name);
 	if (!impl) {
-		return NULL;
+		my_log(MY_LOG_ERROR, "core/filter: unknown type '%s' for filter #%d '%s'", impl_name, conf->index, conf->name);
 	}
 
-	filter = impl->create(conf);
-	if (!filter) {
-		my_log(MY_LOG_ERROR, "core/filter: error creating filter #%d '%s'", conf->index, conf->name);
-		return NULL;
-	}
-
-	MY_PORT_GET_IMPL(filter) = impl;
-
-	return filter;
+	return impl;
 }
 
-void my_filter_destroy(my_port_t *filter)
-{
-	MY_PORT_GET_IMPL(filter)->destroy(filter);
-}
 
 static int my_filter_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
-	my_port_t *filter;
+	my_port_t *port;
 	my_port_conf_t *conf = MY_PORT_CONF(data);
+	my_port_impl_t *impl;
 
-	filter = my_filter_create(conf);
-	if (filter) {
-		my_list_enqueue(core->filters, filter);
-		filter->core = core;
+	impl = my_filter_impl_find(conf);
+	if (!impl) {
+		return 0;
+	}
+
+	port = my_port_create(conf, impl);
+	if (port) {
+		my_list_enqueue(core->filters, port);
+		port->core = core;
 	}
 
 	return 0;
@@ -131,21 +82,9 @@ int my_filter_create_all(my_core_t *core, my_conf_t *conf)
 	return my_list_iter(conf->filters, my_filter_create_fn, core);
 }
 
-
 int my_filter_destroy_all(my_core_t *core)
 {
-	my_port_t *filter;
-
-	MY_DEBUG("core/filter: destroying all filters");
-	while (filter = my_list_dequeue(core->filters)) {
-		my_filter_destroy(filter);
-	}
-}
-
-
-void my_filter_register(my_port_impl_t *filter)
-{
-	my_list_enqueue(&my_filters, filter);
+	return my_port_destroy_all(core->filters);
 }
 
 void my_filter_register_all(void)

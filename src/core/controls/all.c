@@ -23,41 +23,48 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/controls_priv.h"
+#include "core/ports.h"
 
 #include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/prop.h"
 #include "util/url.h"
 
 static my_list_t my_controls;
 
 #define MY_CONTROL_REGISTER(x) { \
-	extern my_control_impl_t my_control_##x; \
+	extern my_port_impl_t my_control_##x; \
 	my_control_register(&my_control_##x); \
 }
 
-static my_control_impl_t *my_control_impl_find(my_control_conf_t *conf)
+static my_port_impl_t *my_control_impl_find(my_port_conf_t *conf)
 {
-	my_control_impl_t *impl;
+	my_port_impl_t *impl;
 	my_node_t *node;
 	char *impl_name;
+	char *url;
 	char url_prot[10];
 
-	impl_name = conf->type;
+	impl_name = my_prop_lookup(conf->properties, "type");
 	if (!impl_name) {
-		my_url_split(
-			url_prot, sizeof(url_prot),
-			NULL, 0, /* auth */
-			NULL, 0, /* hostname */
-			NULL,    /* port */
-			NULL, 0, /* path */
-			conf->url
-		);
-		impl_name = url_prot;
+		url = my_prop_lookup(conf->properties, "url");
+		if (url) {
+			my_url_split(
+				url_prot, sizeof(url_prot),
+				NULL, 0, /* auth */
+				NULL, 0, /* hostname */
+				NULL,    /* port */
+				NULL, 0, /* path */
+				url
+			);
+			impl_name = url_prot;
+		} else {
+			impl_name = "fifo";
+		}
 	}
 	for (node = my_controls.head; node; node = node->next) {
-		impl = MY_CONTROL_IMPL(node->data);
+		impl = MY_PORT_IMPL(node->data);
 		if (strcmp(impl->name, impl_name) == 0) {
 			return impl;
 		}
@@ -68,61 +75,28 @@ static my_control_impl_t *my_control_impl_find(my_control_conf_t *conf)
 	return NULL;
 }
 
-my_control_t *my_control_priv_create(my_control_conf_t *conf, size_t size)
+my_port_t *my_control_create(my_port_conf_t *conf)
 {
-	my_control_t *control;
-
-	control = my_mem_alloc(size);
-	if (!control) {
-		goto _MY_ERR_alloc;
-	}
-
-	control->conf = conf;
-
-	return control;
-
-	my_mem_free(control);
-_MY_ERR_alloc:
-	return NULL;
-}
-
-void my_control_priv_destroy(my_control_t *control)
-{
-	my_mem_free(control);
-}
-
-
-my_control_t *my_control_create(my_control_conf_t *conf)
-{
-	my_control_t *control;
-	my_control_impl_t *impl;
+	my_port_impl_t *impl;
 
 	impl = my_control_impl_find(conf);
 	if (!impl) {
 		return NULL;
 	}
 
-	control = impl->create(conf);
-	if (!control) {
-		my_log(MY_LOG_ERROR, "core/control: error creating control #%d '%s'", conf->index, conf->name);
-		return NULL;
-	}
-
-	MY_CONTROL_GET_IMPL(control) = impl;
-
-	return control;
+	return my_port_create(conf, impl);
 }
 
-void my_control_destroy(my_control_t *control)
+void my_control_destroy(my_port_t *control)
 {
-	MY_CONTROL_GET_IMPL(control)->destroy(control);
+	my_port_destroy(control);
 }
 
 static int my_control_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
-	my_control_t *control;
-	my_control_conf_t *conf = MY_CONTROL_CONF(data);
+	my_port_t *control;
+	my_port_conf_t *conf = MY_PORT_CONF(data);
 
 	control = my_control_create(conf);
 	if (control) {
@@ -142,7 +116,7 @@ int my_control_create_all(my_core_t *core, my_conf_t *conf)
 
 int my_control_destroy_all(my_core_t *core)
 {
-	my_control_t *control;
+	my_port_t *control;
 
 	MY_DEBUG("core/control: destroying all controls");
 	while (control = my_list_dequeue(core->controls)) {
@@ -153,9 +127,9 @@ int my_control_destroy_all(my_core_t *core)
 
 static int my_control_open_fn(void *data, void *user, int flags)
 {
-	my_control_t *control = MY_CONTROL(data);
+	my_port_t *control = MY_PORT(data);
 
-	MY_CONTROL_GET_IMPL(control)->open(control);
+	MY_PORT_GET_IMPL(control)->open(control);
 
 	return 0;
 }
@@ -169,9 +143,9 @@ int my_control_open_all(my_core_t *core)
 
 static int my_control_close_fn(void *data, void *user, int flags)
 {
-	my_control_t *control = MY_CONTROL(data);
+	my_port_t *control = MY_PORT(data);
 
-	MY_CONTROL_GET_IMPL(control)->close(control);
+	MY_PORT_GET_IMPL(control)->close(control);
 
 	return 0;
 }
@@ -183,7 +157,7 @@ int my_control_close_all(my_core_t *core)
 }
 
 
-void my_control_register(my_control_impl_t *impl)
+void my_control_register(my_port_impl_t *impl)
 {
 	my_list_enqueue(&my_controls, impl);
 }
@@ -202,11 +176,10 @@ void my_control_register_all(void)
 
 static int my_control_dump_fn(void *data, void *user, int flags)
 {
-	my_control_impl_t *impl = MY_CONTROL_IMPL(data);
+	my_port_impl_t *impl = MY_PORT_IMPL(data);
 
 	MY_DEBUG("\t{");
 	MY_DEBUG("\t\tname=\"%s\";", impl->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", impl->desc);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;

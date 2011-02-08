@@ -20,6 +20,7 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <err.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -27,15 +28,9 @@
 
 #include "core.h"
 
-#include "core/controls.h"
-#include "core/filters.h"
-#include "core/sources.h"
-#include "core/targets.h"
-
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/list.h"
-#include <err.h>
 
 typedef struct my_core_priv my_core_priv_t;
 
@@ -316,7 +311,7 @@ int my_core_event_handler_del(my_core_t *core, int fd)
 		goto err;
 	}
 
-	my_list_remove(node);
+	my_list_remove(core_priv->watched_fd_list, node);
 	my_mem_free(watch_entry);
 	my_core_watched_fds_update(core);
 	return 0;

@@ -27,7 +27,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include "core/controls_priv.h"
+#include "core/ports.h"
 
 #include "util/log.h"
 #include "util/mem.h"
@@ -36,7 +36,7 @@
 typedef struct my_control_data_s my_control_data_t;
 
 struct my_control_data_s {
-	my_control_priv_t _inherited;
+	my_port_t _inherited;
 	char *path;
 	int sock;
 };
@@ -44,33 +44,35 @@ struct my_control_data_s {
 #define MY_CONTROL_DATA(p) ((my_control_data_t *)(p))
 #define MY_CONTROL_DATA_SIZE (sizeof(my_control_data_t))
 
-static my_control_t *my_control_sock_create(my_control_conf_t *conf)
+static my_port_t *my_control_sock_create(my_port_conf_t *conf)
 {
-	my_control_t *control;
+	my_port_t *control;
+	char *url;
 	char url_prot[5];
 	char url_path[255];
 
-	control = my_control_priv_create(conf, MY_CONTROL_DATA_SIZE);
+	control = my_port_priv_create(conf, MY_CONTROL_DATA_SIZE);
 	if (!control) {
 		goto _MY_ERR_alloc;
 	}
 
+	url = my_prop_lookup(conf->properties, "url");
 	my_url_split(
 		url_prot, sizeof(url_prot),
 		NULL, 0, /* auth */
 		NULL, 0, /* hostname */
 		NULL, /* port */
 		url_path, sizeof(url_path),
-		conf->url
+		url
 	);
 	if (strlen(url_prot) > 0) {
 		if ((strcmp(url_prot, "file") != 0) && (strcmp(url_prot, "sock") != 0)) {
-			my_log(MY_LOG_ERROR, "core/control: unknown url protocol '%s' in '%s'", url_prot, conf->url);
+			my_log(MY_LOG_ERROR, "core/control: unknown url protocol '%s' in '%s'", url_prot, url);
 			goto _MY_ERR_parse_url;
 		}
 	}
 	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", conf->url);
+		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", url);
 		goto _MY_ERR_parse_url;
 	}
 
@@ -80,18 +82,18 @@ static my_control_t *my_control_sock_create(my_control_conf_t *conf)
 
 	free(MY_CONTROL_DATA(control)->path);
 _MY_ERR_parse_url:
-	my_control_priv_destroy(control);
+	my_port_priv_destroy(control);
 _MY_ERR_alloc:
 	return NULL;
 }
 
-static void my_control_sock_destroy(my_control_t *control)
+static void my_control_sock_destroy(my_port_t *control)
 {
 	free(MY_CONTROL_DATA(control)->path);
-	my_control_priv_destroy(control);
+	my_port_priv_destroy(control);
 }
 
-static int my_control_sock_open(my_control_t *control)
+static int my_control_sock_open(my_port_t *control)
 {
 	struct sockaddr_un sa;
 
@@ -120,7 +122,7 @@ _MY_ERR_create_sock:
 	return -1;
 }
 
-static int my_control_sock_close(my_control_t *control)
+static int my_control_sock_close(my_port_t *control)
 {
 	MY_DEBUG("core/control: closing unix socket '%s'", MY_CONTROL_DATA(control)->path);
 	if (close(MY_CONTROL_DATA(control)->sock) == -1) {
@@ -135,7 +137,7 @@ static int my_control_sock_close(my_control_t *control)
 	return 0;
 }
 
-my_control_impl_t my_control_sock = {
+my_port_impl_t my_control_sock = {
 	.name = "sock",
 	.desc = "Unix socket control interface",
 	.create = my_control_sock_create,

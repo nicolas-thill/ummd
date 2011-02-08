@@ -29,10 +29,7 @@
 #include "conf.h"
 
 #include "core.h"
-#include "core/controls.h"
-#include "core/filters.h"
-#include "core/sources.h"
-#include "core/targets.h"
+#include "core/ports.h"
 #include "core/wirings.h"
 
 #include "util/list.h"
@@ -48,44 +45,63 @@ static char *my_conf_get_default_name(char *s, int n)
 	return strdup(buf);
 }
 
-static int my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
+static my_port_conf_t *my_conf_parse_port(config_setting_t *group, char *class)
+{
+	my_port_conf_t *port_conf;
+	int port_index;
+	char *port_name;
+	const char *prop_name;
+	const char *prop_value;
+	const config_setting_t *item;
+	int i, n;
+
+	port_index = config_setting_index(group);
+
+	if (config_setting_lookup_string(group, "name", &prop_value) != CONFIG_FALSE) {
+		port_name = strdup(prop_value);
+	} else {
+		port_name = my_conf_get_default_name(class, port_index);
+	}
+
+	port_conf = my_port_conf_create(port_index, port_name);
+	if (port_conf == NULL) {
+		goto _MY_ERR_alloc;
+	}
+
+	n = config_setting_length(group);
+	for (i = 0; i < n; i++) {
+		item = config_setting_get_elem(group, i);
+
+		prop_name = config_setting_name(item);
+		prop_value = config_setting_get_string(item);
+		my_prop_add(port_conf->properties, prop_name, prop_value);
+	}
+
+	return port_conf;
+
+	my_mem_free(port_conf);
+_MY_ERR_alloc:
+	return NULL;
+}
+
+static int my_conf_parse_ports(config_setting_t *list, char *class, my_list_t *ports)
 {
 	int i, n;
 	config_setting_t *item;
-	const char *str_value;
-	my_control_conf_t *control;
+	my_port_conf_t *port_conf;
 
 	n = config_setting_length(list);
 	for (i = 0; i < n; i++) {
 		item = config_setting_get_elem(list, i);
-		control = my_mem_alloc(sizeof(*control));
-		if (control == NULL) {
-			MY_ERROR("conf: error creating control #%d (%s)", i, strerror(errno));
-			goto _MY_ERR_alloc;
+		
+		port_conf = my_conf_parse_port(item, class);
+		if (port_conf == NULL) {
+			MY_ERROR("conf: error parsing %s #%d", class, i);
+			goto _MY_ERR_create;
 		}
 
-		control->index = i;
-
-		if (config_setting_lookup_string(item, "name", &str_value) != CONFIG_FALSE) {
-			control->name = strdup(str_value);
-		} else {
-			control->name = my_conf_get_default_name("control", i);
-		}
-
-		if (config_setting_lookup_string(item, "description", &str_value) != CONFIG_FALSE) {
-			control->desc = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "type", &str_value) != CONFIG_FALSE) {
-			control->type = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "url", &str_value) != CONFIG_FALSE) {
-			control->url = strdup(str_value);
-		}
-
-		if (my_list_enqueue(conf->controls, control)) {
-			MY_ERROR("conf: error queuing control #%d '%s'" , control->index, control->name);
+		if (my_list_enqueue(ports, port_conf)) {
+			MY_ERROR("conf: error queuing %s #%d", class, i);
 			goto _MY_ERR_queue;
 		}
 	}
@@ -93,161 +109,29 @@ static int my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
 	return 0;
 
 _MY_ERR_queue:
-	my_mem_free(control);
-_MY_ERR_alloc:
+	my_port_conf_destroy(port_conf);
+_MY_ERR_create:
 	return -1;
+}
+
+static int my_conf_parse_controls(my_conf_t *conf, config_setting_t *list)
+{
+	return my_conf_parse_ports(list, "control", conf->controls);
 }
 
 static int my_conf_parse_filters(my_conf_t *conf, config_setting_t *list)
 {
-	int i, n;
-	config_setting_t *item;
-	const char *str_value;
-	my_filter_conf_t *filter;
-	
-
-	n = config_setting_length(list);
-	for (i = 0; i < n; i++) {
-		item = config_setting_get_elem(list, i);
-		filter = my_mem_alloc(sizeof(*filter));
-		if (filter == NULL) {
-			MY_ERROR("conf: error creating filter #%d (%s)", i,strerror(errno));
-			goto _MY_ERR_alloc;
-		}
-
-		filter->index = i;
-
-		if (config_setting_lookup_string(item, "name", &str_value) != CONFIG_FALSE) {
-			filter->name = strdup(str_value);
-		} else {
-			filter->name = my_conf_get_default_name("filter", i);
-		}
-
-		if (config_setting_lookup_string(item, "description", &str_value) != CONFIG_FALSE) {
-			filter->desc = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "type", &str_value) != CONFIG_FALSE) {
-			filter->type = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "arg", &str_value) != CONFIG_FALSE) {
-			filter->arg = strdup(str_value);
-		}
-
-		if (my_list_enqueue(conf->filters, filter)) {
-			MY_ERROR("conf: error queuing filter #%d '%s'" , filter->index, filter->name);
-			goto _MY_ERR_queue;
-		}
-	}
-
-	return 0;
-
-_MY_ERR_queue:
-	my_mem_free(filter);
-_MY_ERR_alloc:
-	return -1;
+	return my_conf_parse_ports(list, "filter", conf->filters);
 }
 
 static int my_conf_parse_sources(my_conf_t *conf, config_setting_t *list)
 {
-	int i, n;
-	config_setting_t *item;
-	const char *str_value;
-	my_source_conf_t *source;
-
-	n = config_setting_length(list);
-	for (i = 0; i < n; i++) {
-		item = config_setting_get_elem(list, i);
-		source = my_mem_alloc(sizeof(*source));
-		if (source == NULL) {
-			MY_ERROR("conf: error creating source #%d (%s)", i, strerror(errno));
-			goto _MY_ERR_alloc;
-		}
-
-		source->index = i;
-
-		if (config_setting_lookup_string(item, "name", &str_value) != CONFIG_FALSE) {
-			source->name = strdup(str_value);
-		} else {
-			source->name = my_conf_get_default_name("source", i);
-		}
-
-		if (config_setting_lookup_string(item, "description", &str_value) != CONFIG_FALSE) {
-			source->desc = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "type", &str_value) != CONFIG_FALSE) {
-			source->type = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "url", &str_value) != CONFIG_FALSE) {
-			source->url = strdup(str_value);
-		}
-
-		if (my_list_enqueue(conf->sources, source)) {
-			MY_ERROR("conf: error queuing source #%d '%s'" , source->index, source->name);
-			goto _MY_ERR_queue;
-		}
-	}
-
-	return 0;
-
-_MY_ERR_queue:
-	my_mem_free(source);
-_MY_ERR_alloc:
-	return -1;
+	return my_conf_parse_ports(list, "source", conf->sources);
 }
 
 static int my_conf_parse_targets(my_conf_t *conf, config_setting_t *list)
 {
-	int i, n;
-	config_setting_t *item;
-	const char *str_value;
-	my_target_conf_t *target;
-	
-
-	n = config_setting_length(list);
-	for (i = 0; i < n; i++) {
-		item = config_setting_get_elem(list, i);
-		target = my_mem_alloc(sizeof(*target));
-		if (target == NULL) {
-			MY_ERROR("conf: error creating target #%d (%s)", i, strerror(errno));
-			goto _MY_ERR_alloc;
-		}
-
-		target->index = i;
-
-		if (config_setting_lookup_string(item, "name", &str_value) != CONFIG_FALSE) {
-			target->name = strdup(str_value);
-		} else {
-			target->name = my_conf_get_default_name("target", i);
-		}
-
-		if (config_setting_lookup_string(item, "description", &str_value) != CONFIG_FALSE) {
-			target->desc = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "type", &str_value) != CONFIG_FALSE) {
-			target->type = strdup(str_value);
-		}
-
-		if (config_setting_lookup_string(item, "url", &str_value) != CONFIG_FALSE) {
-			target->url = strdup(str_value);
-		}
-
-		if (my_list_enqueue(conf->targets, target)) {
-			MY_ERROR("conf: error queuing target #%d '%s'" , target->index, target->name);
-			goto _MY_ERR_queue;
-		}
-	}
-
-	return 0;
-
-_MY_ERR_queue:
-	my_mem_free(target);
-_MY_ERR_alloc:
-	return -1;
+	return my_conf_parse_ports(list, "target", conf->targets);
 }
 
 static int my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)

@@ -28,16 +28,17 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "core/controls_priv.h"
+#include "core/ports.h"
 
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/prop.h"
 #include "util/url.h"
 
 typedef struct my_control_data_s my_control_data_t;
 
 struct my_control_data_s {
-	my_control_priv_t shared;
+	my_port_t _inherited;
 	char *path;
 	int fd;
 };
@@ -50,7 +51,7 @@ struct my_control_data_s {
 
 static void my_control_fifo_event_handler(int fd, void *p)
 {
-	my_control_t *control = (my_control_t *)p;
+	my_port_t *control = (my_port_t *)p;
 	char buf[MY_CONTROL_BUF_SIZE + 1];
 	int n;
 
@@ -68,33 +69,35 @@ static void my_control_fifo_event_handler(int fd, void *p)
 	}
 }
 
-static my_control_t *my_control_fifo_create(my_control_conf_t *conf)
+static my_port_t *my_control_fifo_create(my_port_conf_t *conf)
 {
-	my_control_t *control;
+	my_port_t *control;
+	char *url;
 	char url_prot[5];
 	char url_path[255];
 
-	control = my_control_priv_create(conf, MY_CONTROL_DATA_SIZE);
+	control = my_port_priv_create(conf, MY_CONTROL_DATA_SIZE);
 	if (!control) {
 		goto _MY_ERR_alloc;
 	}
 
+	url = my_prop_lookup(conf->properties, "url");
 	my_url_split(
 		url_prot, sizeof(url_prot),
 		NULL, 0, /* auth */
 		NULL, 0, /* hostname */
 		NULL, /* port */
 		url_path, sizeof(url_path),
-		conf->url
+		url
 	);
 	if (strlen(url_prot) > 0) {
 		if ((strcmp(url_prot, "file") != 0) && (strcmp(url_prot, "fifo") != 0)) {
-			my_log(MY_LOG_ERROR, "core/control: unknown url protocol '%s' in '%s'", url_prot, conf->url);
+			my_log(MY_LOG_ERROR, "core/control: unknown url protocol '%s' in '%s'", url_prot, url);
 			goto _MY_ERR_parse_url;
 		}
 	}
 	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", conf->url);
+		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", url);
 		goto _MY_ERR_parse_url;
 	}
 
@@ -104,18 +107,18 @@ static my_control_t *my_control_fifo_create(my_control_conf_t *conf)
 
 	free(MY_CONTROL_DATA(control)->path);
 _MY_ERR_parse_url:
-	my_control_priv_destroy(control);
+	my_port_priv_destroy(control);
 _MY_ERR_alloc:
 	return NULL;
 }
 
-static void my_control_fifo_destroy(my_control_t *control)
+static void my_control_fifo_destroy(my_port_t *control)
 {
 	free(MY_CONTROL_DATA(control)->path);
-	my_control_priv_destroy(control);
+	my_port_priv_destroy(control);
 }
 
-static int my_control_fifo_open(my_control_t *control)
+static int my_control_fifo_open(my_port_t *control)
 {
 	MY_DEBUG("core/control: creating fifo '%s'", MY_CONTROL_DATA(control)->path);
 	if (mkfifo(MY_CONTROL_DATA(control)->path, 0600) == -1) {
@@ -139,7 +142,7 @@ _MY_ERR_create_fifo:
 	return -1;
 }
 
-static int my_control_fifo_close(my_control_t *control)
+static int my_control_fifo_close(my_port_t *control)
 {
 	my_core_event_handler_del(control->core, MY_CONTROL_DATA(control)->fd);
 
@@ -156,7 +159,7 @@ static int my_control_fifo_close(my_control_t *control)
 	return 0;
 }
 
-my_control_impl_t my_control_fifo = {
+my_port_impl_t my_control_fifo = {
 	.name = "fifo",
 	.desc = "FIFO (named pipe) control interface",
 	.create = my_control_fifo_create,

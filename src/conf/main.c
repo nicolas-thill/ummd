@@ -27,10 +27,7 @@
 #include "conf.h"
 
 #include "core.h"
-#include "core/controls.h"
-#include "core/filters.h"
-#include "core/sources.h"
-#include "core/targets.h"
+#include "core/ports.h"
 #include "core/wirings.h"
 
 #include "util/list.h"
@@ -40,13 +37,10 @@
 
 static int my_conf_dump_control(void *data, void *user, int flags)
 {
-	my_control_conf_t *control = (my_control_conf_t *)data;
+	my_port_conf_t *control = (my_port_conf_t *)data;
 
 	MY_DEBUG("\tcontrol[%d] = {", control->index);
 	MY_DEBUG("\t\tname=\"%s\";", control->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", control->desc);
-	MY_DEBUG("\t\ttype=\"%s\";", control->type);
-	MY_DEBUG("\t\turl=\"%s\";", control->url);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;
@@ -54,13 +48,10 @@ static int my_conf_dump_control(void *data, void *user, int flags)
 
 static int my_conf_dump_filter(void *data, void *user, int flags)
 {
-	my_filter_conf_t *filter = (my_filter_conf_t *)data;
+	my_port_conf_t *filter = (my_port_conf_t *)data;
 
 	MY_DEBUG("\tfilter[%d] = {", filter->index);
 	MY_DEBUG("\t\tname=\"%s\";", filter->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", filter->desc);
-	MY_DEBUG("\t\ttype=\"%s\";", filter->type);
-	MY_DEBUG("\t\targ=\"%s\";", filter->arg);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;
@@ -68,13 +59,10 @@ static int my_conf_dump_filter(void *data, void *user, int flags)
 
 static int my_conf_dump_source(void *data, void *user, int flags)
 {
-	my_source_conf_t *source = (my_source_conf_t *)data;
+	my_port_conf_t *source = (my_port_conf_t *)data;
 
 	MY_DEBUG("\tsource[%d] = {", source->index);
 	MY_DEBUG("\t\tname=\"%s\";", source->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", source->desc);
-	MY_DEBUG("\t\ttype=\"%s\";", source->type);
-	MY_DEBUG("\t\turl=\"%s\";", source->url);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;
@@ -82,13 +70,10 @@ static int my_conf_dump_source(void *data, void *user, int flags)
 
 static int my_conf_dump_target(void *data, void *user, int flags)
 {
-	my_target_conf_t *target= (my_target_conf_t *)data;
+	my_port_conf_t *target= (my_port_conf_t *)data;
 
 	MY_DEBUG("\ttarget[%d] = {", target->index);
 	MY_DEBUG("\t\tname=\"%s\";", target->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", target->desc);
-	MY_DEBUG("\t\ttype=\"%s\";", target->type);
-	MY_DEBUG("\t\turl=\"%s\";", target->url);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;
@@ -100,7 +85,6 @@ static int my_conf_dump_wiring(void *data, void *user, int flags)
 
 	MY_DEBUG("\twiring[%d] = {", wiring->index);
 	MY_DEBUG("\t\tname=\"%s\";", wiring->name);
-	MY_DEBUG("\t\tdescription=\"%s\";", wiring->desc);
 	MY_DEBUG("\t\tsource=\"%s\";", wiring->source);
 	MY_DEBUG("\t\ttarget=\"%s\";", wiring->target);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");

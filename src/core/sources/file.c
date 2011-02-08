@@ -28,17 +28,17 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <libavformat/avformat.h>
-
-#include "core/sources_priv.h"
+#include "core/ports.h"
 
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/prop.h"
+#include "util/url.h"
 
 typedef struct my_source_data_s my_source_data_t;
 
 struct my_source_data_s {
-	my_source_priv_t _inherited;
+	my_port_t _inherited;
 	char *path;
 	int fd;
 };
@@ -48,38 +48,40 @@ struct my_source_data_s {
 
 static void my_source_file_event_handler(int fd, void *p)
 {
-	my_source_t *source = (my_source_t *)p;
+	my_source_data_t *source = MY_SOURCE_DATA(p);
 
 	/* do something */
 }
 
-static my_source_t *my_source_file_create(my_source_conf_t *conf)
+static my_port_t *my_source_file_create(my_port_conf_t *conf)
 {
-	my_source_t *source;
+	my_port_t *source;
+	char *url;
 	char url_prot[5];
 	char url_path[255];
 
-	source = my_source_priv_create(conf, MY_SOURCE_DATA_SIZE);
+	source = my_port_priv_create(conf, MY_SOURCE_DATA_SIZE);
 	if (!source) {
 		goto _MY_ERR_create_source;
 	}
 
-	url_split(
+	url = my_prop_lookup(conf->properties, "url");
+	my_url_split(
 		url_prot, sizeof(url_prot),
 		NULL, 0, /* auth */
 		NULL, 0, /* hostname */
 		NULL, /* port */
 		url_path, sizeof(url_path),
-		conf->url
+		url
 	);
 	if (strlen(url_prot) > 0) {
 		if (strcmp(url_prot, "file") != 0) {
-			my_log(MY_LOG_ERROR, "core/source: unknown url protocol '%s' in '%s'", url_prot, conf->url);
+			my_log(MY_LOG_ERROR, "core/source: unknown url protocol '%s' in '%s'", url_prot, url);
 			goto _MY_ERR_parse_url;
 		}
 	}
 	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", conf->url);
+		my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", url);
 		goto _MY_ERR_parse_url;
 	}
 
@@ -94,13 +96,13 @@ _MY_ERR_create_source:
 	return NULL;
 }
 
-static void my_source_file_destroy(my_source_t *source)
+static void my_source_file_destroy(my_port_t *source)
 {
 	free(MY_SOURCE_DATA(source)->path);
-	my_source_priv_destroy(source);
+	my_port_priv_destroy(source);
 }
 
-static int my_source_file_open(my_source_t *source)
+static int my_source_file_open(my_port_t *source)
 {
 	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE_DATA(source)->path);
 	MY_SOURCE_DATA(source)->fd = open(MY_SOURCE_DATA(source)->path, O_RDONLY | O_NONBLOCK, 0);
@@ -117,7 +119,7 @@ _MY_ERR_open_file:
 	return -1;
 }
 
-static int my_source_file_close(my_source_t *source)
+static int my_source_file_close(my_port_t *source)
 {
 	my_core_event_handler_del(source->core, MY_SOURCE_DATA(source)->fd);
 
@@ -129,7 +131,7 @@ static int my_source_file_close(my_source_t *source)
 	return 0;
 }
 
-my_source_impl_t my_source_file = {
+my_port_impl_t my_source_file = {
 	.name = "file",
 	.desc = "Regular file source",
 	.create = my_source_file_create,

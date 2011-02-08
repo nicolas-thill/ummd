@@ -23,44 +23,48 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/sources_priv.h"
+#include "core/ports.h"
 
 #include "util/list.h"
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/prop.h"
 #include "util/url.h"
 
 static my_list_t my_sources;
 
 #define MY_SOURCE_REGISTER(x) { \
-	extern my_source_impl_t my_source_##x; \
+	extern my_port_impl_t my_source_##x; \
 	my_source_register(&my_source_##x); \
 }
 
-static my_source_impl_t *my_source_impl_find(my_source_conf_t *conf)
+static my_port_impl_t *my_source_impl_find(my_port_conf_t *conf)
 {
-	my_source_impl_t *impl;
+	my_port_impl_t *impl;
 	my_node_t *node;
 	char *impl_name;
 	char *conf_type;
+	char *url;
 	char url_prot[10];
 	char url_host[255];
 	char buf[255];
 
 	impl_name = "file";
+
+	url = my_prop_lookup(conf->properties, "url");
 	my_url_split(
 		url_prot, sizeof(url_prot),
 		NULL, 0, /* auth */
 		url_host, sizeof(url_host),
 		NULL,    /* port */
 		NULL, 0, /* path */
-		conf->url
+		url
 	);
 	if (strlen(url_host) > 0) {
 		if (strlen(url_prot) == 0) {
 			strncpy(url_prot, "udp", sizeof(url_prot));
 		}
-		conf_type = conf->type;
+		conf_type = my_prop_lookup(conf->properties, "type");
 		if (!conf_type) {
 			conf_type = "client";
 		}
@@ -73,7 +77,7 @@ static my_source_impl_t *my_source_impl_find(my_source_conf_t *conf)
 	}
 
 	for (node = my_sources.head; node; node = node->next) {
-		impl = MY_SOURCE_IMPL(node->data);
+		impl = MY_PORT_IMPL(node->data);
 		if (strcmp(impl->name, impl_name) == 0) {
 			return impl;
 		}
@@ -84,9 +88,9 @@ static my_source_impl_t *my_source_impl_find(my_source_conf_t *conf)
 	return NULL;
 }
 
-my_source_t *my_source_priv_create(my_source_conf_t *conf, size_t size)
+my_port_t *my_source_priv_create(my_port_conf_t *conf, size_t size)
 {
-	my_source_t *source;
+	my_port_t *source;
 
 	source = my_mem_alloc(size);
 	if (!source) {
@@ -95,30 +99,22 @@ my_source_t *my_source_priv_create(my_source_conf_t *conf, size_t size)
 
 	source->conf = conf;
 
-	source->oports = my_list_create();
-	if (!source->oports) {
-		goto _MY_ERR_create_oports;
-	}
-	
 	return source;
 
-	my_list_destroy(source->oports);
-_MY_ERR_create_oports:
 	my_mem_free(source);
 _MY_ERR_alloc:
 	return NULL;
 }
 
-void my_source_priv_destroy(my_source_t *source)
+void my_source_priv_destroy(my_port_t *source)
 {
-	my_list_destroy(source->oports);
 	my_mem_free(source);
 }
 
-my_source_t *my_source_create(my_source_conf_t *conf)
+my_port_t *my_source_create(my_port_conf_t *conf)
 {
-	my_source_t *source;
-	my_source_impl_t *impl;
+	my_port_t *source;
+	my_port_impl_t *impl;
 
 	impl = my_source_impl_find(conf);
 	if (!impl) {
@@ -131,21 +127,21 @@ my_source_t *my_source_create(my_source_conf_t *conf)
 		return 0;
 	}
 
-	MY_SOURCE_GET_IMPL(source) = impl;
+	MY_PORT_GET_IMPL(source) = impl;
 
 	return source;
 }
 
-void my_source_destroy(my_source_t *source)
+void my_source_destroy(my_port_t *source)
 {
-	MY_SOURCE_GET_IMPL(source)->destroy(source);
+	MY_PORT_GET_IMPL(source)->destroy(source);
 }
 
 static int my_source_create_fn(void *data, void *user, int flags)
 {
 	my_core_t *core = MY_CORE(user);
-	my_source_t *source;
-	my_source_conf_t *conf = MY_SOURCE_CONF(data);
+	my_port_t *source;
+	my_port_conf_t *conf = MY_PORT_CONF(data);
 
 	source = my_source_create(conf);
 	if (source) {
@@ -165,7 +161,7 @@ int my_source_create_all(my_core_t *core, my_conf_t *conf)
 
 int my_source_destroy_all(my_core_t *core)
 {
-	my_source_t *source;
+	my_port_t *source;
 
 	MY_DEBUG("core/source: destroying all sources");
 	while (source = my_list_dequeue(core->sources)) {
@@ -176,9 +172,9 @@ int my_source_destroy_all(my_core_t *core)
 
 static int my_source_open_fn(void *data, void *user, int flags)
 {
-	my_source_t *source = MY_SOURCE(data);
+	my_port_t *source = MY_PORT(data);
 
-	MY_SOURCE_GET_IMPL(source)->open(source);
+	MY_PORT_GET_IMPL(source)->open(source);
 
 	return 0;
 }
@@ -192,9 +188,9 @@ int my_source_open_all(my_core_t *core)
 
 static int my_source_close_fn(void *data, void *user, int flags)
 {
-	my_source_t *source = MY_SOURCE(data);
+	my_port_t *source = MY_PORT(data);
 
-	MY_SOURCE_GET_IMPL(source)->close(source);
+	MY_PORT_GET_IMPL(source)->close(source);
 
 	return 0;
 }
@@ -206,7 +202,7 @@ int my_source_close_all(my_core_t *core)
 }
 
 
-void my_source_register(my_source_impl_t *source)
+void my_source_register(my_port_impl_t *source)
 {
 	my_list_enqueue(&my_sources, source);
 }
@@ -226,7 +222,7 @@ void my_source_register_all(void)
 
 static int my_source_dump_fn(void *data, void *user, int flags)
 {
-	my_source_impl_t *impl = MY_SOURCE_IMPL(data);
+	my_port_impl_t *impl = MY_PORT_IMPL(data);
 	MY_DEBUG("\t{");
 	MY_DEBUG("\t\tname=\"%s\";", impl->name);
 	MY_DEBUG("\t\tdescription=\"%s\";", impl->desc);

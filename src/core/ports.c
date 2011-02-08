@@ -60,6 +60,27 @@ void my_port_conf_destroy(my_port_conf_t *port_conf)
 }
 
 
+my_port_impl_t *my_port_impl_lookup(my_list_t *list, char *name)
+{
+	my_port_impl_t *impl;
+	my_node_t *node;
+
+	for (node = list->head; node; node = node->next) {
+		impl = MY_PORT_IMPL(node->data);
+		if (strcmp(impl->name, name) == 0) {
+			return impl;
+		}
+	}
+
+	return NULL;
+}
+
+void my_port_impl_register(my_list_t *list, my_port_impl_t *impl)
+{
+	my_list_enqueue(list, impl);
+}
+
+
 my_port_t *my_port_priv_create(my_port_conf_t *conf, int size)
 {
 	my_port_t *port;
@@ -101,5 +122,44 @@ my_port_t *my_port_create(my_port_conf_t *conf, my_port_impl_t *impl)
 void my_port_destroy(my_port_t *port)
 {
 	MY_PORT_GET_IMPL(port)->destroy(port);
+}
+
+
+int my_port_destroy_all(my_list_t *list)
+{
+	my_port_t *port;
+
+	while (port = my_list_dequeue(list)) {
+		my_port_destroy(port);
+	}
+}
+
+static int my_port_open_fn(void *data, void *user, int flags)
+{
+	my_port_t *port = MY_PORT(data);
+
+	MY_PORT_GET_IMPL(port)->open(port);
+
+	return 0;
+}
+
+int my_port_open_all(my_list_t *list)
+{
+	return my_list_iter(list, my_port_open_fn, NULL);
+}
+
+
+static int my_port_close_fn(void *data, void *user, int flags)
+{
+	my_port_t *port = MY_PORT(data);
+
+	return MY_PORT_GET_IMPL(port)->close(port);
+
+	return 0;
+}
+
+int my_port_close_all(my_list_t *list)
+{
+	return my_list_iter(list, my_port_close_fn, NULL);
 }
 

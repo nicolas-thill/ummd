@@ -76,16 +76,19 @@ struct my_port_impl_s {
 extern my_port_conf_t *my_port_conf_create(int port_index, char *port_name);
 extern void my_port_conf_destroy(my_port_conf_t *port_conf);
 
+extern my_port_impl_t *my_port_impl_lookup(my_list_t *list, char *name);
+extern void my_port_impl_register(my_list_t *list, my_port_impl_t *impl);
+
 extern my_port_t *my_port_priv_create(my_port_conf_t *conf, int size);
 extern void my_port_priv_destroy(my_port_t *port);
 
 extern my_port_t *my_port_create(my_port_conf_t *conf, my_port_impl_t *impl);
 extern void my_port_destroy(my_port_t *port);
 
-extern int my_port_create_all(my_core_t *core, my_conf_t *conf);
-extern int my_port_destroy_all(my_core_t *core);
+extern int my_port_destroy_all(my_list_t *list);
 
-extern void my_port_register_all(void);
+extern int my_port_open_all(my_list_t *list);
+extern int my_port_close_all(my_list_t *list);
 
 #ifdef MY_DEBUGGING
 extern void my_port_dump_all(void);

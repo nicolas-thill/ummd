@@ -35,51 +35,25 @@
 
 #ifdef MY_DEBUGGING
 
-static int my_conf_dump_control(void *data, void *user, int flags)
+static int my_conf_dump_port_properties_fn(char *name, char *value, void *user, int flags)
 {
-	my_port_conf_t *control = (my_port_conf_t *)data;
+	MY_DEBUG("\t\t%s=\"%s\";", name, value);
+}
 
-	MY_DEBUG("\tcontrol[%d] = {", control->index);
-	MY_DEBUG("\t\tname=\"%s\";", control->name);
+static int my_conf_dump_port_fn(void *data, void *user, int flags)
+{
+	my_port_conf_t *port = (my_port_conf_t *)data;
+	char *class = (char *)user;
+
+	MY_DEBUG("\t%s[%d] = {", class, port->index);
+	MY_DEBUG("\t\tname=\"%s\";", port->name);
+	my_prop_iter(port->properties, my_conf_dump_port_properties_fn, NULL);
 	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
 
 	return 0;
 }
 
-static int my_conf_dump_filter(void *data, void *user, int flags)
-{
-	my_port_conf_t *filter = (my_port_conf_t *)data;
-
-	MY_DEBUG("\tfilter[%d] = {", filter->index);
-	MY_DEBUG("\t\tname=\"%s\";", filter->name);
-	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
-
-	return 0;
-}
-
-static int my_conf_dump_source(void *data, void *user, int flags)
-{
-	my_port_conf_t *source = (my_port_conf_t *)data;
-
-	MY_DEBUG("\tsource[%d] = {", source->index);
-	MY_DEBUG("\t\tname=\"%s\";", source->name);
-	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
-
-	return 0;
-}
-
-static int my_conf_dump_target(void *data, void *user, int flags)
-{
-	my_port_conf_t *target= (my_port_conf_t *)data;
-
-	MY_DEBUG("\ttarget[%d] = {", target->index);
-	MY_DEBUG("\t\tname=\"%s\";", target->name);
-	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
-
-	return 0;
-}
-
-static int my_conf_dump_wiring(void *data, void *user, int flags)
+static int my_conf_dump_wiring_fn(void *data, void *user, int flags)
 {
 	my_wiring_conf_t *wiring = (my_wiring_conf_t *)data;
 
@@ -100,23 +74,23 @@ void my_conf_dump(my_conf_t *conf)
 	MY_DEBUG("pid-file = \"%s\";", conf->pid_file);
 
 	MY_DEBUG("controls = (");
-	my_list_iter(conf->controls, my_conf_dump_control, NULL);
+	my_list_iter(conf->controls, my_conf_dump_port_fn, "control");
 	MY_DEBUG(");");
 
 	MY_DEBUG("filters = (");
-	my_list_iter(conf->filters, my_conf_dump_filter, NULL);
+	my_list_iter(conf->filters, my_conf_dump_port_fn, "filter");
 	MY_DEBUG(");");
 
 	MY_DEBUG("sources = (");
-	my_list_iter(conf->sources, my_conf_dump_source, NULL);
+	my_list_iter(conf->sources, my_conf_dump_port_fn, "source");
 	MY_DEBUG(");");
 
 	MY_DEBUG("targets = (");
-	my_list_iter(conf->targets, my_conf_dump_target, NULL);
+	my_list_iter(conf->targets, my_conf_dump_port_fn, "target");
 	MY_DEBUG(");");
 
 	MY_DEBUG("wirings = (");
-	my_list_iter(conf->wirings, my_conf_dump_wiring, NULL);
+	my_list_iter(conf->wirings, my_conf_dump_wiring_fn, NULL);
 	MY_DEBUG(");");
 }
 

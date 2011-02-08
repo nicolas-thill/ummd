@@ -49,7 +49,7 @@ extern int my_list_iter(my_list_t *list, my_list_iter_fn_t func, void *user);
 
 extern void *my_list_dequeue(my_list_t *list);
 extern int my_list_enqueue(my_list_t *list, void *data);
-extern void my_list_remove(my_node_t *node);
+extern void my_list_remove(my_list_t *list, my_node_t *node);
 
 #define MY_LIST_PURGE_FLAG_FREE_DATA  0x0001
 

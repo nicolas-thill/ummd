@@ -167,7 +167,12 @@ int main(int argc, char *argv[])
 	if (my_core_init(my_core, my_conf) != 0) {
 		goto _MY_ERR_core_init;
 	}
-	
+
+#ifdef MY_DEBUGGING
+	my_conf_dump(my_conf);
+	my_core_dump(my_core);
+#endif
+
 	my_core_loop(my_core);
 	my_core_destroy(my_core);
 

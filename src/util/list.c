@@ -129,13 +129,18 @@ void *my_list_dequeue(my_list_t *list)
 	return NULL;
 }
 
-void my_list_remove(my_node_t *node)
+void my_list_remove(my_list_t *list, my_node_t *node)
 {
-	if (node->next)
+	if (node->next) {
 		node->next->prev = node->prev;
-
-	if (node->prev)
+	} else {
+		list->tail = node->prev;
+	}
+	if (node->prev) {
 		node->prev->next = node->next;
+	} else {
+		list->head = node->next;
+	}
 	my_mem_free(node);
 }
 

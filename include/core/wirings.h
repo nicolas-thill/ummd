@@ -23,14 +23,30 @@
 #ifndef __MY_WIRINGS_H
 #define __MY_WIRINGS_H
 
+#include "core.h"
+
+#include "core/ports.h"
+
+typedef struct my_wiring_s my_wiring_t;
 typedef struct my_wiring_conf_s my_wiring_conf_t;
+
+struct my_wiring_s {
+	my_core_t *core;
+	my_port_t *source;
+	my_port_t *target;
+};
 
 struct my_wiring_conf_s {
 	int index;
 	char *name;
-	char *desc;
 	char *source;
 	char *target;
 };
+
+#define MY_WIRING(p) ((my_wiring_t *)(p))
+#define MY_WIRING_CONF(p) ((my_wiring_conf_t *)(p))
+
+extern int my_wiring_create_all(my_core_t *core, my_conf_t *conf);
+extern void my_wiring_destroy_all(my_core_t *core);
 
 #endif /* __MY_WIRINGS_H */

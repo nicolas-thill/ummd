@@ -14,4 +14,5 @@ libcore_la_LIBADD = \
 
 libcore_la_SOURCES = \
 	main.c \
-	ports.c
+	ports.c \
+	wirings.c

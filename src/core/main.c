@@ -117,6 +117,12 @@ my_core_t *my_core_create(void)
 		goto _MY_ERR_create_targets;
 	}
 
+	core->wirings = my_list_create();
+	if (core->wirings == NULL) {
+		MY_ERROR("core: error creating wiring list (%s)" , strerror(errno));
+		goto _MY_ERR_create_wirings;
+	}
+
 	core_priv = MY_CORE_PRIV(core);
 
 	core_priv->watched_fd_list = my_list_create();
@@ -131,6 +137,8 @@ my_core_t *my_core_create(void)
 
 	my_list_destroy(core_priv->watched_fd_list);
 _MY_ERR_create_watched_fds:
+	my_list_destroy(core->wirings);
+_MY_ERR_create_wirings:
 	my_list_destroy(core->targets);
 _MY_ERR_create_targets:
 	my_list_destroy(core->sources);
@@ -152,6 +160,7 @@ void my_core_destroy(my_core_t *core)
 	my_source_close_all(core);
 	my_control_close_all(core);
 
+	my_wiring_destroy_all(core);
 	my_target_destroy_all(core);
 	my_source_destroy_all(core);
 	my_filter_destroy_all(core);
@@ -161,6 +170,7 @@ void my_core_destroy(my_core_t *core)
 	my_list_destroy(core->filters);
 	my_list_destroy(core->sources);
 	my_list_destroy(core->targets);
+	my_list_destroy(core->wirings);
 
 	my_list_destroy(core_priv->watched_fd_list);
 	my_mem_free(core);
@@ -189,6 +199,10 @@ int my_core_init(my_core_t *core, my_conf_t *conf)
 		goto _MY_ERR_create_targets;
 	}
 
+	if (my_wiring_create_all(core, conf) != 0) {
+		goto _MY_ERR_create_wirings;
+	}
+
 	if (my_control_open_all(core) != 0) {
 		goto _MY_ERR_open_controls;
 	}
@@ -209,6 +223,8 @@ _MY_ERR_open_targets:
 _MY_ERR_open_sources:
 	my_control_close_all(core);
 _MY_ERR_open_controls:
+	my_wiring_destroy_all(core);
+_MY_ERR_create_wirings:
 	my_target_destroy_all(core);
 _MY_ERR_create_targets:
 	my_source_destroy_all(core);

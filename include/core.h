@@ -38,6 +38,7 @@ struct my_core_s {
 	my_list_t *filters;
 	my_list_t *sources;
 	my_list_t *targets;
+	my_list_t *wirings;
 };
 
 #define MY_CORE(p) ((my_core_t *)(p))

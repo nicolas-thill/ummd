@@ -159,10 +159,6 @@ static int my_conf_parse_wirings(my_conf_t *conf, config_setting_t *list)
 			wiring->name = my_conf_get_default_name("wiring", i);
 		}
 
-		if (config_setting_lookup_string(item, "description", &str_value) != CONFIG_FALSE) {
-			wiring->desc = strdup(str_value);
-		}
-
 		if (config_setting_lookup_string(item, "source", &str_value) != CONFIG_FALSE) {
 			wiring->source = strdup(str_value);
 		}

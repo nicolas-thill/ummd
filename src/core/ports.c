@@ -125,6 +125,22 @@ void my_port_destroy(my_port_t *port)
 }
 
 
+my_port_t *my_port_lookup_by_name(my_list_t *list, char *name)
+{
+	my_node_t *node;
+	my_port_t *port;
+	
+	for (node = list->head; node; node = node->next) {
+		port = MY_PORT(node->data);
+		if (strcmp(port->conf->name, name) == 0) {
+			return port;
+		}
+	}
+
+	return NULL;
+}
+
+
 int my_port_destroy_all(my_list_t *list)
 {
 	my_port_t *port;

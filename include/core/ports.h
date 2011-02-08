@@ -85,6 +85,8 @@ extern void my_port_priv_destroy(my_port_t *port);
 extern my_port_t *my_port_create(my_port_conf_t *conf, my_port_impl_t *impl);
 extern void my_port_destroy(my_port_t *port);
 
+extern my_port_t *my_port_lookup_by_name(my_list_t *list, char *name);
+
 extern int my_port_destroy_all(my_list_t *list);
 
 extern int my_port_open_all(my_list_t *list);

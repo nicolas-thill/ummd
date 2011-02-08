@@ -71,7 +71,7 @@ static void my_core_watched_fds_update(my_core_t *core)
 
 	FD_ZERO(&tmp_watched_fds);
 
-	my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+	my_list_for_each(core_priv->watched_fd_list, node, watch_entry) {
 		if (watch_entry->fd > tmp_max_sock)
 			tmp_max_sock = watch_entry->fd;
 
@@ -250,7 +250,7 @@ void my_core_loop(my_core_t *core)
 			continue;
 		}
 
-		my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+		my_list_for_each(core_priv->watched_fd_list, node, watch_entry) {
 
 			if (!FD_ISSET(watch_entry->fd, &tmp_watched_fds))
 				continue;
@@ -266,7 +266,7 @@ int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handle
 	struct watch_entry *watch_entry;
 	my_node_t *node;
 
-	my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+	my_list_for_each(core_priv->watched_fd_list, node, watch_entry) {
 
 		if (watch_entry->fd != fd)
 			continue;
@@ -299,7 +299,7 @@ int my_core_event_handler_del(my_core_t *core, int fd)
 	struct watch_entry *watch_entry;
 	my_node_t *node;
 
-	my_list_for_each(watch_entry, node, core_priv->watched_fd_list) {
+	my_list_for_each(core_priv->watched_fd_list, node, watch_entry) {
 		if (watch_entry->fd == fd)
 			break;
 

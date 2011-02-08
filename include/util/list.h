@@ -60,7 +60,7 @@ extern void my_list_purge(my_list_t *list, int flags);
  * @pos:              the struct my_node to use as a loop cursor.
  * list:              the head for your list.
  */
-#define my_list_for_each(entry, pos, list) \
-	for (pos = (list)->head; pos && (entry = pos->data); pos = pos->next)
+#define my_list_for_each(list, node, p) \
+	for ((node) = (list)->head; (node) && ((p) = (node)->data); (node) = (node)->next)
 
 #endif /* __MY_UTIL_LIST_H */

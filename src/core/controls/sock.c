@@ -57,26 +57,27 @@ static my_port_t *my_control_sock_create(my_port_conf_t *conf)
 	}
 
 	url = my_prop_lookup(conf->properties, "url");
-	my_url_split(
-		url_prot, sizeof(url_prot),
-		NULL, 0, /* auth */
-		NULL, 0, /* hostname */
-		NULL, /* port */
-		url_path, sizeof(url_path),
-		url
-	);
-	if (strlen(url_prot) > 0) {
-		if ((strcmp(url_prot, "file") != 0) && (strcmp(url_prot, "sock") != 0)) {
-			my_log(MY_LOG_ERROR, "core/control: unknown url protocol '%s' in '%s'", url_prot, url);
+	if (url) {
+		my_url_split(
+			url_prot, sizeof(url_prot),
+			NULL, 0, /* auth */
+			NULL, 0, /* hostname */
+			NULL, /* port */
+			url_path, sizeof(url_path),
+			url
+		);
+		if (strlen(url_prot) > 0) {
+			if ((strcmp(url_prot, "file") != 0) && (strcmp(url_prot, "sock") != 0)) {
+				my_log(MY_LOG_ERROR, "core/control: unknown url protocol '%s' in '%s'", url_prot, url);
+				goto _MY_ERR_parse_url;
+			}
+		}
+		if (strlen(url_path) == 0) {
+			my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", url);
 			goto _MY_ERR_parse_url;
 		}
+		MY_CONTROL_DATA(control)->path = strdup(url_path);
 	}
-	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", url);
-		goto _MY_ERR_parse_url;
-	}
-
-	MY_CONTROL_DATA(control)->path = strdup(url_path);
 
 	return control;
 

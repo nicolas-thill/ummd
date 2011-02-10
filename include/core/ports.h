@@ -29,6 +29,8 @@
 
 #include "util/list.h"
 
+/* generic port */
+
 typedef struct my_port_s my_port_t;
 typedef struct my_port_conf_s my_port_conf_t;
 typedef struct my_port_impl_s my_port_impl_t;
@@ -95,5 +97,28 @@ extern int my_port_close_all(my_list_t *list);
 #ifdef MY_DEBUGGING
 extern void my_port_dump_all(void);
 #endif
+
+
+/* control port */
+
+typedef struct my_cport_s my_cport_t;
+
+struct my_cport_s {
+	my_port_t _inherited;
+};
+
+
+/* data port */
+
+typedef struct my_dport_s my_dport_t;
+
+struct my_dport_s {
+	my_port_t _inherited;
+	my_port_t *peer;
+};
+
+#define MY_DPORT(p) ((my_dport_t *)(p))
+
+extern void my_port_link(my_port_t *port, my_port_t *peer);
 
 #endif /* __MY_PORTS_H */

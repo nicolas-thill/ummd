@@ -179,3 +179,12 @@ int my_port_close_all(my_list_t *list)
 	return my_list_iter(list, my_port_close_fn, NULL);
 }
 
+void my_port_link(my_port_t *port, my_port_t *peer)
+{
+	if (port) {
+		MY_DPORT(port)->peer = MY_DPORT(peer);
+	}
+	if (peer) {
+		MY_DPORT(peer)->peer = MY_DPORT(port);
+	}
+}

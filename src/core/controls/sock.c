@@ -36,7 +36,7 @@
 typedef struct my_control_data_s my_control_data_t;
 
 struct my_control_data_s {
-	my_port_t _inherited;
+	my_cport_t _inherited;
 	char *path;
 	int sock;
 };

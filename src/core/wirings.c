@@ -56,24 +56,34 @@ static my_port_t *my_wiring_target_lookup(my_core_t *core, char *name)
 static my_wiring_t *my_wiring_priv_create(my_core_t *core, my_wiring_conf_t *conf)
 {
 	my_wiring_t *wiring;
-	my_port_t *port;
+	my_port_t *source, *target;
+
+	source = my_wiring_source_lookup(core, conf->source);
+	if (source == NULL) {
+		goto _ERR_source_lookup;
+	}
+	target = my_wiring_target_lookup(core, conf->target);
+	if (target == NULL) {
+		goto _ERR_target_lookup;
+	}
 
 	wiring = my_mem_alloc(sizeof(*wiring));
 	if (!wiring) {
-		return NULL;
+		goto _ERR_wiring_alloc;
 	}
 
 	wiring->core = core;
-	wiring->source = my_wiring_source_lookup(core, conf->source);
-	if (wiring->source == NULL) {
-		/* XXX: handle unknown source */
-	}
-	wiring->target = my_wiring_target_lookup(core, conf->target);
-	if (wiring->target == NULL) {
-		/* XXX: handle unknown target */
-	}
+	wiring->source = source;
+	wiring->target = target;
+
+	my_port_link(source, target);
 
 	return wiring;
+
+_ERR_wiring_alloc:
+_ERR_target_lookup:
+_ERR_source_lookup:
+	return NULL;
 }
 
 static void my_wiring_priv_destroy(my_wiring_t *wiring)

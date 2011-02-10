@@ -38,7 +38,7 @@
 typedef struct my_source_data_s my_source_data_t;
 
 struct my_source_data_s {
-	my_port_t _inherited;
+	my_dport_t _inherited;
 	char *path;
 	int fd;
 };

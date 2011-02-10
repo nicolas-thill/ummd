@@ -31,7 +31,7 @@
 typedef struct my_filter_data_s my_filter_data_t;
 
 struct my_filter_data_s {
-	my_port_t _inherited;
+	my_dport_t _inherited;
 };
 
 #define MY_FILTER_DATA(p) ((my_filter_data_t *)(p))

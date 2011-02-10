@@ -132,8 +132,8 @@ int my_target_close_all(my_core_t *core)
 
 void my_target_register_all(void)
 {
-/*
 	MY_TARGET_REGISTER(file);
+/*
 	MY_TARGET_REGISTER(sock);
 	MY_TARGET_REGISTER(http_client);
 	MY_TARGET_REGISTER(rtp_client);

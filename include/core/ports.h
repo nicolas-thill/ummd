@@ -121,4 +121,7 @@ struct my_dport_s {
 
 extern void my_port_link(my_port_t *port, my_port_t *peer);
 
+extern int my_port_get(my_port_t *port, void *buf, int len);
+extern int my_port_put(my_port_t *port, void *buf, int len);
+
 #endif /* __MY_PORTS_H */

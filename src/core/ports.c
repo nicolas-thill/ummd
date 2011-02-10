@@ -188,3 +188,14 @@ void my_port_link(my_port_t *port, my_port_t *peer)
 		MY_DPORT(peer)->peer = MY_DPORT(port);
 	}
 }
+
+int my_port_get(my_port_t *port, void *buf, int len)
+{
+	return MY_PORT_GET_IMPL(port)->get(port, buf, len);
+}
+
+int my_port_put(my_port_t *port, void *buf, int len)
+{
+	return MY_PORT_GET_IMPL(port)->put(port, buf, len);
+}
+

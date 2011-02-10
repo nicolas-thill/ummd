@@ -46,11 +46,27 @@ struct my_source_data_s {
 #define MY_SOURCE_DATA(p) ((my_source_data_t *)(p))
 #define MY_SOURCE_DATA_SIZE (sizeof(my_source_data_t))
 
-static void my_source_file_event_handler(int fd, void *p)
+static int my_source_file_event_handler(int fd, void *p)
 {
-	my_source_data_t *source = MY_SOURCE_DATA(p);
+	my_port_t *port = MY_PORT(p), *peer = MY_PORT(MY_DPORT(port)->peer);
+	char buf[1024];
+	int n = sizeof(buf);
 
-	/* do something */
+	n = my_port_get(port, buf, n);
+	if (n == -1) {
+		goto _ERR_port_get;
+	}
+
+	n = my_port_put(peer, buf, n);
+	if (n == -1) {
+		goto _ERR_port_put;
+	}
+
+	return 0;
+
+_ERR_port_put:
+_ERR_port_get:
+	return -1;
 }
 
 static my_port_t *my_source_file_create(my_port_conf_t *conf)
@@ -106,7 +122,7 @@ static void my_source_file_destroy(my_port_t *source)
 static int my_source_file_open(my_port_t *source)
 {
 	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE_DATA(source)->path);
-	MY_SOURCE_DATA(source)->fd = open(MY_SOURCE_DATA(source)->path, O_RDONLY | O_NONBLOCK, 0);
+	MY_SOURCE_DATA(source)->fd = open(MY_SOURCE_DATA(source)->path, O_RDONLY, 0);
 	if (MY_SOURCE_DATA(source)->fd == -1) {
 		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE_DATA(source)->path, strerror(errno));
 		goto _MY_ERR_open_file;
@@ -132,6 +148,21 @@ static int my_source_file_close(my_port_t *source)
 	return 0;
 }
 
+static int my_source_file_get(my_port_t *port, void *buf, int len)
+{
+	int n;
+
+	n = read(MY_SOURCE_DATA(port)->fd, buf, len);
+	if (n == -1) {
+		my_log(MY_LOG_ERROR, "core/source: error reading from file '%s' (%s)", MY_SOURCE_DATA(port)->path, strerror(errno));
+		return -1;
+	}
+
+	MY_DEBUG("core/source: read %d bytes from '%s'", n, MY_SOURCE_DATA(port)->path);
+
+	return n;
+}
+
 my_port_impl_t my_source_file = {
 	.name = "file",
 	.desc = "Regular file source",
@@ -139,4 +170,5 @@ my_port_impl_t my_source_file = {
 	.destroy = my_source_file_destroy,
 	.open = my_source_file_open,
 	.close = my_source_file_close,
+	.get = my_source_file_get,
 };

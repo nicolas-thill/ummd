@@ -106,7 +106,7 @@ static void my_target_file_destroy(my_port_t *source)
 static int my_target_file_open(my_port_t *source)
 {
 	MY_DEBUG("core/target: opening file '%s'", MY_TARGET_DATA(source)->path);
-	MY_TARGET_DATA(source)->fd = open(MY_TARGET_DATA(source)->path, O_WRONLY | O_NONBLOCK, 0);
+	MY_TARGET_DATA(source)->fd = open(MY_TARGET_DATA(source)->path, O_WRONLY, 0);
 	if (MY_TARGET_DATA(source)->fd == -1) {
 		my_log(MY_LOG_ERROR, "core/target: error opening file '%s' (%s)", MY_TARGET_DATA(source)->path, strerror(errno));
 		goto _MY_ERR_open_file;
@@ -132,6 +132,21 @@ static int my_target_file_close(my_port_t *source)
 	return 0;
 }
 
+static int my_target_file_put(my_port_t *port, void *buf, int len)
+{
+	int n;
+
+	n = write(MY_TARGET_DATA(port)->fd, buf, len);
+	if (n == -1) {
+		my_log(MY_LOG_ERROR, "core/target: error writing from file '%s' (%d: %s)", MY_TARGET_DATA(port)->path, errno, strerror(errno));
+		return -1;
+	}
+
+	MY_DEBUG("core/source: wrote %d bytes to '%s'", n, MY_TARGET_DATA(port)->path);
+
+	return n;
+}
+
 my_port_impl_t my_target_file = {
 	.name = "file",
 	.desc = "Regular file target",
@@ -139,4 +154,5 @@ my_port_impl_t my_target_file = {
 	.destroy = my_target_file_destroy,
 	.open = my_target_file_open,
 	.close = my_target_file_close,
+	.put = my_target_file_put,
 };

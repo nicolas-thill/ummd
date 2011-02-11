@@ -49,6 +49,7 @@ extern void my_core_destroy(my_core_t *core);
 
 extern int my_core_init(my_core_t *core, my_conf_t *conf);
 extern void my_core_loop(my_core_t *core);
+extern void my_core_stop(my_core_t *core);
 
 typedef int (*my_event_handler_t)(int fd, void *p);
 

@@ -22,6 +22,7 @@
  
 #include <errno.h>
 #include <getopt.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,6 +74,11 @@ static int my_show_usage(void)
 static int my_show_version(void)
 {
 	fprintf(stdout, my_version, me, PACKAGE_VERSION);
+}
+
+static void my_sig_handler(int sig_num)
+{
+	my_core_stop(my_core);
 }
 
 int main(int argc, char *argv[])
@@ -167,6 +173,9 @@ int main(int argc, char *argv[])
 	if (my_core_init(my_core, my_conf) != 0) {
 		goto _MY_ERR_core_init;
 	}
+
+	signal(SIGINT, my_sig_handler);
+	signal(SIGTERM, my_sig_handler);
 
 #ifdef MY_DEBUGGING
 	my_conf_dump(my_conf);

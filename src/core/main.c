@@ -276,6 +276,11 @@ void my_core_loop(my_core_t *core)
 	}
 }
 
+void my_core_stop(my_core_t *core)
+{
+	MY_CORE_PRIV(core)->running = 0;
+}
+
 int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handler, void *p)
 {
 	my_core_priv_t *core_priv = MY_CORE_PRIV(core);

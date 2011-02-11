@@ -49,7 +49,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libtargets_la_LIBADD =
-am_libtargets_la_OBJECTS = all.lo file.lo
+am_libtargets_la_OBJECTS = all.lo file.lo oss.lo
 libtargets_la_OBJECTS = $(am_libtargets_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/include
 depcomp = $(SHELL) $(top_srcdir)/autotools/depcomp
@@ -202,7 +202,8 @@ top_srcdir = @top_srcdir@
 noinst_LTLIBRARIES = libtargets.la
 libtargets_la_SOURCES = \
 	all.c \
-	file.c
+	file.c \
+	oss.c
 
 all: all-am
 
@@ -258,6 +259,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/all.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oss.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

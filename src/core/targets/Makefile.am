@@ -6,4 +6,5 @@ noinst_LTLIBRARIES = libtargets.la
 
 libtargets_la_SOURCES = \
 	all.c \
-	file.c
+	file.c \
+	oss.c

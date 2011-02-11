@@ -82,27 +82,23 @@ static my_port_t *my_source_file_create(my_port_conf_t *conf)
 	}
 
 	url = my_prop_lookup(conf->properties, "url");
-	if (url) {
-		my_url_split(
-			url_prot, sizeof(url_prot),
-			NULL, 0, /* auth */
-			NULL, 0, /* hostname */
-			NULL, /* port */
-			url_path, sizeof(url_path),
-			url
-		);
-		if (strlen(url_prot) > 0) {
-			if (strcmp(url_prot, "file") != 0) {
-				my_log(MY_LOG_ERROR, "core/source: unknown url protocol '%s' in '%s'", url_prot, url);
-				goto _MY_ERR_parse_url;
-			}
-		}
-		if (strlen(url_path) == 0) {
-			my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", url);
-			goto _MY_ERR_parse_url;
-		}
-		MY_SOURCE_DATA(source)->path = strdup(url_path);
+	if (!url) {
+		my_log(MY_LOG_ERROR, "core/source: missing 'url' property");
+		goto _MY_ERR_parse_url;
 	}
+	my_url_split(
+		url_prot, sizeof(url_prot),
+		NULL, 0, /* auth */
+		NULL, 0, /* hostname */
+		NULL, /* port */
+		url_path, sizeof(url_path),
+		url
+	);
+	if (strlen(url_path) == 0) {
+		my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", url);
+		goto _MY_ERR_parse_url;
+	}
+	MY_SOURCE_DATA(source)->path = strdup(url_path);
 
 	return source;
 

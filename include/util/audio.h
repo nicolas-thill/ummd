@@ -23,7 +23,7 @@
 #ifndef __MY_AUDIO_H
 #define __MY_AUDIO_H
 
-typedef void *my_audio_codec_t;
+typedef void my_audio_codec_t;
 
 extern int my_audio_codec_init(void);
 

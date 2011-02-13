@@ -23,6 +23,8 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
+#include <sys/param.h> /* MIN/MAX */
+
 #include "util/audio.h"
 
 #include "util/log.h"
@@ -38,7 +40,6 @@ typedef int (*my_audio_decode_fn_t)(my_audio_codec_t *c, void *ibuf, int *ilen, 
 
 struct my_audio_codec_priv_s {
 	struct AVCodecContext *context;
-	struct AVPacket packet;
 	my_audio_destroy_fn_t destroy;
 	my_audio_encode_fn_t encode;
 	my_audio_decode_fn_t decode;
@@ -66,7 +67,7 @@ _ERR_mem_alloc:
 	return NULL;
 }
 
-static void my_mp3_codec_destroy_priv(my_audio_codec_t *c)
+static void my_audio_codec_destroy_priv(my_audio_codec_t *c)
 {
 	my_mem_free(c);
 }
@@ -98,7 +99,7 @@ _ERR_create_priv:
 	return NULL;
 }
 
-static void my_mp3_codec_destroy_raw(my_audio_codec_t *c)
+static void my_audio_codec_destroy_raw(my_audio_codec_t *c)
 {
 	my_audio_codec_destroy_priv(c);
 }
@@ -150,8 +151,6 @@ static my_audio_codec_priv_t *my_audio_codec_create_ffmpeg(char *name)
 		goto _ERR_avcodec_open;
 	}
 
-	av_init_packet(&(c->packet));
-
 	c->destroy = my_audio_codec_destroy_ffmpeg;
 	c->encode = my_audio_codec_encode_ffmpeg;
 	c->decode = my_audio_codec_decode_ffmpeg;
@@ -168,11 +167,11 @@ _ERR_create_priv:
 	return NULL;
 }
 
-static void my_mp3_codec_destroy_ffmpeg(my_audio_codec_t *c)
+static void my_audio_codec_destroy_ffmpeg(my_audio_codec_t *c)
 {
 	avcodec_close(MY_AUDIO_CODEC_PRIV(c)->context);
 	av_free(MY_AUDIO_CODEC_PRIV(c)->context);
-	my_mp3_codec_destroy_priv(c);
+	my_audio_codec_destroy_priv(c);
 }
 
 static int my_audio_codec_encode_ffmpeg(my_audio_codec_t *c, void *ibuf, int *ilen, void *obuf, int *olen)
@@ -183,10 +182,7 @@ static int my_audio_codec_decode_ffmpeg(my_audio_codec_t *c, void *ibuf, int *il
 {
 	int n;
 
-	MY_AUDIO_CODEC_PRIV(c)->packet.data = ibuf;
-	MY_AUDIO_CODEC_PRIV(c)->packet.size = *ilen - FF_INPUT_BUFFER_PADDING_SIZE;
-
-	n = avcodec_decode_audio3(MY_AUDIO_CODEC_PRIV(c)->context, obuf, olen, &(MY_AUDIO_CODEC_PRIV(c)->packet));
+	n = avcodec_decode_audio2(MY_AUDIO_CODEC_PRIV(c)->context, obuf, olen, ibuf, *ilen);
 	if (n < 0) {
 		my_log(MY_LOG_ERROR, "mp3: error decoding audio");
 		return n;

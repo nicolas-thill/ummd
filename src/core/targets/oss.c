@@ -41,6 +41,8 @@ typedef struct my_target_priv_s my_target_priv_t;
 struct my_target_priv_s {
 	my_dport_t _inherited;
 	char *path;
+	int channels;
+	int rate;
 	int fd;
 };
 
@@ -59,7 +61,7 @@ static int my_target_oss_event_handler(int fd, void *p)
 static my_port_t *my_target_oss_create(my_port_conf_t *conf)
 {
 	my_port_t *target;
-	char *url;
+	char *prop;
 	char url_prot[5];
 	char url_path[255];
 
@@ -68,8 +70,8 @@ static my_port_t *my_target_oss_create(my_port_conf_t *conf)
 		goto _MY_ERR_create_target;
 	}
 
-	url = my_prop_lookup(conf->properties, "url");
-	if (!url) {
+	prop = my_prop_lookup(conf->properties, "url");
+	if (!prop) {
 		my_log(MY_LOG_ERROR, "core/target: missing 'url' property");
 		goto _MY_ERR_parse_url;
 	}
@@ -79,13 +81,27 @@ static my_port_t *my_target_oss_create(my_port_conf_t *conf)
 		NULL, 0, /* hostname */
 		NULL, /* port */
 		url_path, sizeof(url_path),
-		url
+		prop
 	);
 	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/target: missing path component in '%s'", url);
+		my_log(MY_LOG_ERROR, "core/target: missing path component in '%s'", prop);
 		goto _MY_ERR_parse_url;
 	}
 	MY_TARGET(target)->path = strdup(url_path);
+
+	prop = my_prop_lookup(conf->properties, "channels");
+	if (prop) {
+		MY_TARGET(target)->channels = atoi(prop);
+	} else {
+		MY_TARGET(target)->channels = -1;
+	}
+
+	prop = my_prop_lookup(conf->properties, "rate");
+	if (prop) {
+		MY_TARGET(target)->rate = atoi(prop);
+	} else {
+		MY_TARGET(target)->rate = -1;
+	}
 
 	return target;
 
@@ -104,31 +120,41 @@ static void my_target_oss_destroy(my_port_t *target)
 
 static int my_target_oss_open(my_port_t *target)
 {
-	int channels, rate;
+	int val;
 	int rc;
 
-	MY_DEBUG("core/target: opening device '%s'", MY_TARGET(target)->path);
+	MY_DEBUG("target/oss: opening device '%s'", MY_TARGET(target)->path);
 	MY_TARGET(target)->fd = open(MY_TARGET(target)->path, O_WRONLY, 0);
 	if (MY_TARGET(target)->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/target: error opening device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "target/oss: error opening device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
 
-	rc = ioctl(MY_TARGET(target)->fd, SNDCTL_DSP_CHANNELS, &channels);
-	if (rc == -1) {
-		my_log(MY_LOG_ERROR, "oss: error retrieving channels info for device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
-		goto _ERR_ioctl_SNDCTL_DSP_CHANNELS;
+	if (MY_TARGET(target)->channels != -1) {
+		val = MY_TARGET(target)->channels;
+		rc = ioctl(MY_TARGET(target)->fd, SNDCTL_DSP_CHANNELS, &val);
+		if (rc == -1) {
+			my_log(MY_LOG_ERROR, "target/oss: error setting channels for device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
+			goto _ERR_ioctl_SNDCTL_DSP_CHANNELS;
+		}
+		MY_TARGET(target)->channels = val;
+		MY_DEBUG("target/oss: device '%s', channels=%d", MY_TARGET(target)->path, val);
 	}
 
-	rc = ioctl(MY_TARGET(target)->fd, SNDCTL_DSP_SPEED, &rate);
-	if (rc == -1) {
-		my_log(MY_LOG_ERROR, "oss: error retrieving rate info for device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
-		goto _ERR_ioctl_SNDCTL_DSP_SPEED;
+	if (MY_TARGET(target)->rate != -1) {
+		val = MY_TARGET(target)->rate;
+		rc = ioctl(MY_TARGET(target)->fd, SNDCTL_DSP_SPEED, &val);
+		if (rc == -1) {
+			my_log(MY_LOG_ERROR, "oss: error setting sampling rate for device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
+			goto _ERR_ioctl_SNDCTL_DSP_SPEED;
+		}
+		MY_TARGET(target)->rate = val;
+		MY_DEBUG("target/oss: device '%s', rate=%d", MY_TARGET(target)->path, val);
 	}
 
 	my_core_event_handler_add(target->core, MY_TARGET(target)->fd, my_target_oss_event_handler, target);
 
-	MY_DEBUG("core/target: device '%s' opened, channels=%d, rate=%d", MY_TARGET(target)->path, channels, rate);
+	MY_DEBUG("core/target: device '%s' opened", MY_TARGET(target)->path);
 
 	return 0;
 

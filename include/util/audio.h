@@ -20,8 +20,8 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __MY_MP3_H
-#define __MY_MP3_H
+#ifndef __MY_AUDIO_H
+#define __MY_AUDIO_H
 
 typedef void *my_audio_codec_t;
 
@@ -33,4 +33,4 @@ extern void my_audio_codec_destroy(my_audio_codec_t *c);
 extern int my_audio_codec_encode(my_audio_codec_t *c, void *ibuf, int *ilen, void *obuf, int *olen);
 extern int my_audio_codec_decode(my_audio_codec_t *c, void *ibuf, int *ilen, void *obuf, int *olen);
 
-#endif /* __MY_MP3_H */
+#endif /* __MY_AUDIO_H */

@@ -178,6 +178,7 @@ void my_core_destroy(my_core_t *core)
 
 int my_core_init(my_core_t *core, my_conf_t *conf)
 {
+	my_audio_codec_init();
 	my_control_register_all();
 	my_filter_register_all();
 	my_source_register_all();

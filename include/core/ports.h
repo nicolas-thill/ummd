@@ -124,4 +124,45 @@ extern void my_port_link(my_port_t *port, my_port_t *peer);
 extern int my_port_get(my_port_t *port, void *buf, int len);
 extern int my_port_put(my_port_t *port, void *buf, int len);
 
+
+/* controls */
+
+extern int my_control_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_control_destroy_all(my_core_t *core);
+
+extern int my_control_open_all(my_core_t *core);
+extern int my_control_close_all(my_core_t *core);
+
+extern void my_control_register_all(void);
+
+
+/* filters */
+
+extern int my_filter_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_filter_destroy_all(my_core_t *core);
+
+extern void my_filter_register_all(void);
+
+
+/* sources */
+
+extern int my_source_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_source_destroy_all(my_core_t *core);
+
+extern int my_source_open_all(my_core_t *core);
+extern int my_source_close_all(my_core_t *core);
+
+extern void my_source_register_all(void);
+
+
+/* targets */
+
+extern int my_target_create_all(my_core_t *core, my_conf_t *conf);
+extern int my_target_destroy_all(my_core_t *core);
+
+extern int my_target_open_all(my_core_t *core);
+extern int my_target_close_all(my_core_t *core);
+
+extern void my_target_register_all(void);
+
 #endif /* __MY_PORTS_H */

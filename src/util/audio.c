@@ -27,7 +27,6 @@
 
 #include "util/log.h"
 #include "util/mem.h"
-#include "util/rbuf.h"
 
 typedef struct my_audio_codec_priv_s my_audio_codec_priv_t;
 
@@ -109,8 +108,8 @@ static int my_audio_codec_copy_raw(my_audio_codec_t *c, void *ibuf, int *ilen, v
 	int n = MIN(*ilen, *olen);
 
 	memcpy(obuf, ibuf, n);
-	*ilen -= n;
-	*olen -= n;
+	*ilen = n;
+	*olen = n;
 
 	return n;
 }
@@ -193,7 +192,7 @@ static int my_audio_codec_decode_ffmpeg(my_audio_codec_t *c, void *ibuf, int *il
 		return n;
 	}
 
-	*ilen -= n;
+	*ilen = n;
 
 	return n;
 }

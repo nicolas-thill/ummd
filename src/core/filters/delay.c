@@ -28,36 +28,36 @@
 #include "util/log.h"
 #include "util/mem.h"
 
-typedef struct my_filter_data_s my_filter_data_t;
+typedef struct my_filter_priv_s my_filter_priv_t;
 
-struct my_filter_data_s {
+struct my_filter_priv_s {
 	my_dport_t _inherited;
 };
 
-#define MY_FILTER_DATA(p) ((my_filter_data_t *)(p))
-#define MY_FILTER_DATA_SIZE (sizeof(my_filter_data_t))
+#define MY_FILTER(p) ((my_filter_priv_t *)(p))
+#define MY_FILTER_SIZE (sizeof(my_filter_priv_t))
 
 
 static my_port_t *my_filter_delay_create(my_port_conf_t *conf)
 {
-	my_port_t *filter;
+	my_port_t *port;
 
-	filter = my_port_priv_create(conf, MY_FILTER_DATA_SIZE);
-	if (!filter) {
+	port = my_port_priv_create(conf, MY_FILTER_SIZE);
+	if (!port) {
 		my_log(MY_LOG_ERROR, "core/filter: error allocating data for filter #%d '%s'", conf->index, conf->name);
 		goto _MY_ERR_alloc;
 	}
 
-	return filter;
+	return port;
 
-	my_port_priv_destroy(filter);
+	my_port_priv_destroy(port);
 _MY_ERR_alloc:
 	return NULL;
 }
 
-static void my_filter_delay_destroy(my_port_t *filter)
+static void my_filter_delay_destroy(my_port_t *port)
 {
-	my_port_priv_destroy(filter);
+	my_port_priv_destroy(port);
 }
 
 my_port_impl_t my_filter_delay = {

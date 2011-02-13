@@ -60,13 +60,13 @@ static int my_target_oss_event_handler(int fd, void *p)
 
 static my_port_t *my_target_oss_create(my_port_conf_t *conf)
 {
-	my_port_t *target;
+	my_port_t *port;
 	char *prop;
 	char url_prot[5];
 	char url_path[255];
 
-	target = my_port_priv_create(conf, MY_TARGET_SIZE);
-	if (!target) {
+	port = my_port_priv_create(conf, MY_TARGET_SIZE);
+	if (!port) {
 		goto _MY_ERR_create_target;
 	}
 
@@ -87,91 +87,91 @@ static my_port_t *my_target_oss_create(my_port_conf_t *conf)
 		my_log(MY_LOG_ERROR, "core/target: missing path component in '%s'", prop);
 		goto _MY_ERR_parse_url;
 	}
-	MY_TARGET(target)->path = strdup(url_path);
+	MY_TARGET(port)->path = strdup(url_path);
 
 	prop = my_prop_lookup(conf->properties, "channels");
 	if (prop) {
-		MY_TARGET(target)->channels = atoi(prop);
+		MY_TARGET(port)->channels = atoi(prop);
 	} else {
-		MY_TARGET(target)->channels = -1;
+		MY_TARGET(port)->channels = -1;
 	}
 
 	prop = my_prop_lookup(conf->properties, "rate");
 	if (prop) {
-		MY_TARGET(target)->rate = atoi(prop);
+		MY_TARGET(port)->rate = atoi(prop);
 	} else {
-		MY_TARGET(target)->rate = -1;
+		MY_TARGET(port)->rate = -1;
 	}
 
-	return target;
+	return port;
 
-	free(MY_TARGET(target)->path);
+	free(MY_TARGET(port)->path);
 _MY_ERR_parse_url:
-	my_port_priv_destroy(target);
+	my_port_priv_destroy(port);
 _MY_ERR_create_target:
 	return NULL;
 }
 
-static void my_target_oss_destroy(my_port_t *target)
+static void my_target_oss_destroy(my_port_t *port)
 {
-	free(MY_TARGET(target)->path);
-	my_port_priv_destroy(target);
+	free(MY_TARGET(port)->path);
+	my_port_priv_destroy(port);
 }
 
-static int my_target_oss_open(my_port_t *target)
+static int my_target_oss_open(my_port_t *port)
 {
 	int val;
 	int rc;
 
-	MY_DEBUG("target/oss: opening device '%s'", MY_TARGET(target)->path);
-	MY_TARGET(target)->fd = open(MY_TARGET(target)->path, O_WRONLY, 0);
-	if (MY_TARGET(target)->fd == -1) {
-		my_log(MY_LOG_ERROR, "target/oss: error opening device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
+	MY_DEBUG("target/oss: opening device '%s'", MY_TARGET(port)->path);
+	MY_TARGET(port)->fd = open(MY_TARGET(port)->path, O_WRONLY, 0);
+	if (MY_TARGET(port)->fd == -1) {
+		my_log(MY_LOG_ERROR, "target/oss: error opening device '%s' (%s)", MY_TARGET(port)->path, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
 
-	if (MY_TARGET(target)->channels != -1) {
-		val = MY_TARGET(target)->channels;
-		rc = ioctl(MY_TARGET(target)->fd, SNDCTL_DSP_CHANNELS, &val);
+	if (MY_TARGET(port)->channels != -1) {
+		val = MY_TARGET(port)->channels;
+		rc = ioctl(MY_TARGET(port)->fd, SNDCTL_DSP_CHANNELS, &val);
 		if (rc == -1) {
-			my_log(MY_LOG_ERROR, "target/oss: error setting channels for device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
+			my_log(MY_LOG_ERROR, "target/oss: error setting channels for device '%s' (%s)", MY_TARGET(port)->path, strerror(errno));
 			goto _ERR_ioctl_SNDCTL_DSP_CHANNELS;
 		}
-		MY_TARGET(target)->channels = val;
-		MY_DEBUG("target/oss: device '%s', channels=%d", MY_TARGET(target)->path, val);
+		MY_TARGET(port)->channels = val;
+		MY_DEBUG("target/oss: device '%s', channels=%d", MY_TARGET(port)->path, val);
 	}
 
-	if (MY_TARGET(target)->rate != -1) {
-		val = MY_TARGET(target)->rate;
-		rc = ioctl(MY_TARGET(target)->fd, SNDCTL_DSP_SPEED, &val);
+	if (MY_TARGET(port)->rate != -1) {
+		val = MY_TARGET(port)->rate;
+		rc = ioctl(MY_TARGET(port)->fd, SNDCTL_DSP_SPEED, &val);
 		if (rc == -1) {
-			my_log(MY_LOG_ERROR, "oss: error setting sampling rate for device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
+			my_log(MY_LOG_ERROR, "oss: error setting sampling rate for device '%s' (%s)", MY_TARGET(port)->path, strerror(errno));
 			goto _ERR_ioctl_SNDCTL_DSP_SPEED;
 		}
-		MY_TARGET(target)->rate = val;
-		MY_DEBUG("target/oss: device '%s', rate=%d", MY_TARGET(target)->path, val);
+		MY_TARGET(port)->rate = val;
+		MY_DEBUG("target/oss: device '%s', rate=%d", MY_TARGET(port)->path, val);
 	}
 
-	my_core_event_handler_add(target->core, MY_TARGET(target)->fd, my_target_oss_event_handler, target);
+	my_core_event_handler_add(port->core, MY_TARGET(port)->fd, my_target_oss_event_handler, port);
 
-	MY_DEBUG("core/target: device '%s' opened", MY_TARGET(target)->path);
+	MY_DEBUG("core/target: device '%s' opened", MY_TARGET(port)->path);
 
 	return 0;
 
 _ERR_ioctl_SNDCTL_DSP_SPEED:
 _ERR_ioctl_SNDCTL_DSP_CHANNELS:
-	close(MY_TARGET(target)->fd);
+	close(MY_TARGET(port)->fd);
 _MY_ERR_open_file:
 	return -1;
 }
 
-static int my_target_oss_close(my_port_t *target)
+static int my_target_oss_close(my_port_t *port)
 {
-	my_core_event_handler_del(target->core, MY_TARGET(target)->fd);
+	my_core_event_handler_del(port->core, MY_TARGET(port)->fd);
 
-	MY_DEBUG("core/target: closing device '%s'", MY_TARGET(target)->path);
-	if (close(MY_TARGET(target)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/target: error closing device '%s' (%s)", MY_TARGET(target)->path, strerror(errno));
+	MY_DEBUG("core/target: closing device '%s'", MY_TARGET(port)->path);
+	if (close(MY_TARGET(port)->fd) == -1) {
+		my_log(MY_LOG_ERROR, "core/target: error closing device '%s' (%s)", MY_TARGET(port)->path, strerror(errno));
 	}
 
 	return 0;

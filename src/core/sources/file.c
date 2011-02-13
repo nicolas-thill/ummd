@@ -35,16 +35,16 @@
 #include "util/prop.h"
 #include "util/url.h"
 
-typedef struct my_source_data_s my_source_data_t;
+typedef struct my_source_priv_s my_source_priv_t;
 
-struct my_source_data_s {
+struct my_source_priv_s {
 	my_dport_t _inherited;
 	char *path;
 	int fd;
 };
 
-#define MY_SOURCE_DATA(p) ((my_source_data_t *)(p))
-#define MY_SOURCE_DATA_SIZE (sizeof(my_source_data_t))
+#define MY_SOURCE(p) ((my_source_priv_t *)(p))
+#define MY_SOURCE_SIZE (sizeof(my_source_priv_t))
 
 static int my_source_file_event_handler(int fd, void *p)
 {
@@ -71,13 +71,13 @@ _ERR_port_get:
 
 static my_port_t *my_source_file_create(my_port_conf_t *conf)
 {
-	my_port_t *source;
+	my_port_t *port;
 	char *url;
 	char url_prot[5];
 	char url_path[255];
 
-	source = my_port_priv_create(conf, MY_SOURCE_DATA_SIZE);
-	if (!source) {
+	port = my_port_priv_create(conf, MY_SOURCE_SIZE);
+	if (!port) {
 		goto _MY_ERR_create_source;
 	}
 
@@ -98,33 +98,33 @@ static my_port_t *my_source_file_create(my_port_conf_t *conf)
 		my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", url);
 		goto _MY_ERR_parse_url;
 	}
-	MY_SOURCE_DATA(source)->path = strdup(url_path);
+	MY_SOURCE(port)->path = strdup(url_path);
 
-	return source;
+	return port;
 
-	free(MY_SOURCE_DATA(source)->path);
+	free(MY_SOURCE(port)->path);
 _MY_ERR_parse_url:
-	my_port_priv_destroy(source);
+	my_port_priv_destroy(port);
 _MY_ERR_create_source:
 	return NULL;
 }
 
-static void my_source_file_destroy(my_port_t *source)
+static void my_source_file_destroy(my_port_t *port)
 {
-	free(MY_SOURCE_DATA(source)->path);
-	my_port_priv_destroy(source);
+	free(MY_SOURCE(port)->path);
+	my_port_priv_destroy(port);
 }
 
-static int my_source_file_open(my_port_t *source)
+static int my_source_file_open(my_port_t *port)
 {
-	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE_DATA(source)->path);
-	MY_SOURCE_DATA(source)->fd = open(MY_SOURCE_DATA(source)->path, O_RDONLY, 0);
-	if (MY_SOURCE_DATA(source)->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE_DATA(source)->path, strerror(errno));
+	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE(port)->path);
+	MY_SOURCE(port)->fd = open(MY_SOURCE(port)->path, O_RDONLY, 0);
+	if (MY_SOURCE(port)->fd == -1) {
+		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
 
-	my_core_event_handler_add(source->core, MY_SOURCE_DATA(source)->fd, my_source_file_event_handler, source);
+	my_core_event_handler_add(port->core, MY_SOURCE(port)->fd, my_source_file_event_handler, port);
 
 	return 0;
 
@@ -132,13 +132,13 @@ _MY_ERR_open_file:
 	return -1;
 }
 
-static int my_source_file_close(my_port_t *source)
+static int my_source_file_close(my_port_t *port)
 {
-	my_core_event_handler_del(source->core, MY_SOURCE_DATA(source)->fd);
+	my_core_event_handler_del(port->core, MY_SOURCE(port)->fd);
 
-	MY_DEBUG("core/source: closing file '%s'", MY_SOURCE_DATA(source)->path);
-	if (close(MY_SOURCE_DATA(source)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error closing file '%s' (%s)", MY_SOURCE_DATA(source)->path, strerror(errno));
+	MY_DEBUG("core/source: closing file '%s'", MY_SOURCE(port)->path);
+	if (close(MY_SOURCE(port)->fd) == -1) {
+		my_log(MY_LOG_ERROR, "core/source: error closing file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
 	}
 
 	return 0;
@@ -148,13 +148,13 @@ static int my_source_file_get(my_port_t *port, void *buf, int len)
 {
 	int n;
 
-	n = read(MY_SOURCE_DATA(port)->fd, buf, len);
+	n = read(MY_SOURCE(port)->fd, buf, len);
 	if (n == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error reading from file '%s' (%s)", MY_SOURCE_DATA(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/source: error reading from file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
 		return -1;
 	}
 
-	MY_DEBUG("core/source: read %d bytes from '%s'", n, MY_SOURCE_DATA(port)->path);
+	MY_DEBUG("core/source: read %d bytes from '%s'", n, MY_SOURCE(port)->path);
 
 	return n;
 }

@@ -35,16 +35,16 @@
 #include "util/prop.h"
 #include "util/url.h"
 
-typedef struct my_control_data_s my_control_data_t;
+typedef struct my_control_priv_s my_control_priv_t;
 
-struct my_control_data_s {
+struct my_control_priv_s {
 	my_cport_t _inherited;
 	char *path;
 	int fd;
 };
 
-#define MY_CONTROL_DATA(p) ((my_control_data_t *)(p))
-#define MY_CONTROL_DATA_SIZE (sizeof(my_control_data_t))
+#define MY_CONTROL(p) ((my_control_priv_t *)(p))
+#define MY_CONTROL_SIZE (sizeof(my_control_priv_t))
 
 
 #define MY_CONTROL_BUF_SIZE  255
@@ -57,27 +57,27 @@ static void my_control_fifo_event_handler(int fd, void *p)
 
 	n = read(fd, buf, MY_CONTROL_BUF_SIZE);
 	if (n == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error reading from fifo '%s' (%s)", MY_CONTROL_DATA(control)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/control: error reading from fifo '%s' (%s)", MY_CONTROL(control)->path, strerror(errno));
 	}
 	buf[MY_CONTROL_BUF_SIZE] = '\0';
 	if (n > 0) {
 		if (buf[n - 1] == '\n') {
 			buf[n - 1] = '\0';
 		}
-		my_log(MY_LOG_DEBUG, "core/control: received '%s' from fifo '%s'", buf, MY_CONTROL_DATA(control)->path);
+		my_log(MY_LOG_DEBUG, "core/control: received '%s' from fifo '%s'", buf, MY_CONTROL(control)->path);
 		my_core_handle_command(control->core, buf);
 	}
 }
 
 static my_port_t *my_control_fifo_create(my_port_conf_t *conf)
 {
-	my_port_t *control;
+	my_port_t *port;
 	char *url;
 	char url_prot[5];
 	char url_path[255];
 
-	control = my_port_priv_create(conf, MY_CONTROL_DATA_SIZE);
-	if (!control) {
+	port = my_port_priv_create(conf, MY_CONTROL_SIZE);
+	if (!port) {
 		goto _MY_ERR_alloc;
 	}
 
@@ -99,39 +99,39 @@ static my_port_t *my_control_fifo_create(my_port_conf_t *conf)
 		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", url);
 		goto _MY_ERR_parse_url;
 	}
-	MY_CONTROL_DATA(control)->path = strdup(url_path);
+	MY_CONTROL(port)->path = strdup(url_path);
 
-	return control;
+	return port;
 
-	free(MY_CONTROL_DATA(control)->path);
+	free(MY_CONTROL(port)->path);
 _MY_ERR_parse_url:
-	my_port_priv_destroy(control);
+	my_port_priv_destroy(port);
 _MY_ERR_alloc:
 	return NULL;
 }
 
-static void my_control_fifo_destroy(my_port_t *control)
+static void my_control_fifo_destroy(my_port_t *port)
 {
-	free(MY_CONTROL_DATA(control)->path);
-	my_port_priv_destroy(control);
+	free(MY_CONTROL(port)->path);
+	my_port_priv_destroy(port);
 }
 
-static int my_control_fifo_open(my_port_t *control)
+static int my_control_fifo_open(my_port_t *port)
 {
-	MY_DEBUG("core/control: creating fifo '%s'", MY_CONTROL_DATA(control)->path);
-	if (mkfifo(MY_CONTROL_DATA(control)->path, 0600) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error creating fifo '%s' (%s)", MY_CONTROL_DATA(control)->path, strerror(errno));
+	MY_DEBUG("core/control: creating fifo '%s'", MY_CONTROL(port)->path);
+	if (mkfifo(MY_CONTROL(port)->path, 0600) == -1) {
+		my_log(MY_LOG_ERROR, "core/control: error creating fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
 		goto _MY_ERR_create_fifo;
 	}
 
-	MY_DEBUG("core/control: opening fifo '%s'", MY_CONTROL_DATA(control)->path);
-	MY_CONTROL_DATA(control)->fd = open(MY_CONTROL_DATA(control)->path, O_RDWR | O_NONBLOCK, 0);
-	if (MY_CONTROL_DATA(control)->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error opening fifo '%s' (%s)", MY_CONTROL_DATA(control)->path, strerror(errno));
+	MY_DEBUG("core/control: opening fifo '%s'", MY_CONTROL(port)->path);
+	MY_CONTROL(port)->fd = open(MY_CONTROL(port)->path, O_RDWR | O_NONBLOCK, 0);
+	if (MY_CONTROL(port)->fd == -1) {
+		my_log(MY_LOG_ERROR, "core/control: error opening fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
 		goto _MY_ERR_open_fifo;
 	}
 
-	my_core_event_handler_add(control->core, MY_CONTROL_DATA(control)->fd, my_control_fifo_event_handler, control);
+	my_core_event_handler_add(port->core, MY_CONTROL(port)->fd, my_control_fifo_event_handler, port);
 
 	return 0;
 
@@ -140,18 +140,18 @@ _MY_ERR_create_fifo:
 	return -1;
 }
 
-static int my_control_fifo_close(my_port_t *control)
+static int my_control_fifo_close(my_port_t *port)
 {
-	my_core_event_handler_del(control->core, MY_CONTROL_DATA(control)->fd);
+	my_core_event_handler_del(port->core, MY_CONTROL(port)->fd);
 
-	MY_DEBUG("core/control: closing fifo '%s'", MY_CONTROL_DATA(control)->path);
-	if (close(MY_CONTROL_DATA(control)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error closing fifo '%s' (%s)", MY_CONTROL_DATA(control)->path, strerror(errno));
+	MY_DEBUG("core/control: closing fifo '%s'", MY_CONTROL(port)->path);
+	if (close(MY_CONTROL(port)->fd) == -1) {
+		my_log(MY_LOG_ERROR, "core/control: error closing fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
 	}
 
-	MY_DEBUG("core/control: removing fifo '%s'", MY_CONTROL_DATA(control)->path);
-	if (unlink(MY_CONTROL_DATA(control)->path) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error removing fifo '%s' (%s)", MY_CONTROL_DATA(control)->path, strerror(errno));
+	MY_DEBUG("core/control: removing fifo '%s'", MY_CONTROL(port)->path);
+	if (unlink(MY_CONTROL(port)->path) == -1) {
+		my_log(MY_LOG_ERROR, "core/control: error removing fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
 	}
 
 	return 0;

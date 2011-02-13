@@ -47,7 +47,7 @@ struct my_port_conf_s {
 	my_list_t *properties;
 };
 
-typedef my_port_t *(*my_port_create_fn_t)(my_port_conf_t *conf);
+typedef my_port_t *(*my_port_create_fn_t)(my_core_t *core, my_port_conf_t *conf);
 typedef void (*my_port_destroy_fn_t)(my_port_t *port);
 
 typedef int (*my_port_open_fn_t)(my_port_t *port);
@@ -81,10 +81,10 @@ extern void my_port_conf_destroy(my_port_conf_t *port_conf);
 extern my_port_impl_t *my_port_impl_lookup(my_list_t *list, char *name);
 extern void my_port_impl_register(my_list_t *list, my_port_impl_t *impl);
 
-extern my_port_t *my_port_priv_create(my_port_conf_t *conf, int size);
-extern void my_port_priv_destroy(my_port_t *port);
+extern my_port_t *my_port_create_priv(int size);
+extern void my_port_destroy_priv(my_port_t *port);
 
-extern my_port_t *my_port_create(my_port_conf_t *conf, my_port_impl_t *impl);
+extern my_port_t *my_port_create(my_core_t *core, my_port_conf_t *conf, my_port_impl_t *impl);
 extern void my_port_destroy(my_port_t *port);
 
 extern my_port_t *my_port_lookup_by_name(my_list_t *list, char *name);

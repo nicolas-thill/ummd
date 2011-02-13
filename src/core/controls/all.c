@@ -83,10 +83,9 @@ static int my_control_create_fn(void *data, void *user, int flags)
 		return 0;
 	}
 
-	port = my_port_create(conf, impl);
+	port = my_port_create(core, conf, impl);
 	if (port) {
 		my_list_enqueue(core->controls, port);
-		port->core = core;
 	}
 
 	return 0;

@@ -81,7 +81,7 @@ void my_port_impl_register(my_list_t *list, my_port_impl_t *impl)
 }
 
 
-my_port_t *my_port_priv_create(my_port_conf_t *conf, int size)
+my_port_t *my_port_create_priv(int size)
 {
 	my_port_t *port;
 
@@ -90,8 +90,6 @@ my_port_t *my_port_priv_create(my_port_conf_t *conf, int size)
 		goto _MY_ERR_alloc;
 	}
 
-	port->conf = conf;
-
 	return port;
 
 	my_mem_free(port);
@@ -99,22 +97,24 @@ _MY_ERR_alloc:
 	return NULL;
 }
 
-void my_port_priv_destroy(my_port_t *port)
+void my_port_destroy_priv(my_port_t *port)
 {
 	my_mem_free(port);
 }
 
 
-my_port_t *my_port_create(my_port_conf_t *conf, my_port_impl_t *impl)
+my_port_t *my_port_create(my_core_t *core, my_port_conf_t *conf, my_port_impl_t *impl)
 {
 	my_port_t *port;
 
-	port = impl->create(conf);
+	port = impl->create(core, conf);
 	if (!port) {
 		return NULL;
 	}
 
-	MY_PORT_GET_IMPL(port) = impl;
+	port->core = core;
+	port->conf = conf;
+	port->impl = impl;
 
 	return port;
 }

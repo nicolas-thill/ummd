@@ -69,14 +69,14 @@ static void my_control_fifo_event_handler(int fd, void *p)
 	}
 }
 
-static my_port_t *my_control_fifo_create(my_port_conf_t *conf)
+static my_port_t *my_control_fifo_create(my_core_t *core, my_port_conf_t *conf)
 {
 	my_port_t *port;
 	char *url;
 	char url_prot[5];
 	char url_path[255];
 
-	port = my_port_priv_create(conf, MY_CONTROL_SIZE);
+	port = my_port_create_priv(MY_CONTROL_SIZE);
 	if (!port) {
 		goto _MY_ERR_alloc;
 	}
@@ -105,7 +105,7 @@ static my_port_t *my_control_fifo_create(my_port_conf_t *conf)
 
 	free(MY_CONTROL(port)->path);
 _MY_ERR_parse_url:
-	my_port_priv_destroy(port);
+	my_port_destroy_priv(port);
 _MY_ERR_alloc:
 	return NULL;
 }
@@ -113,7 +113,7 @@ _MY_ERR_alloc:
 static void my_control_fifo_destroy(my_port_t *port)
 {
 	free(MY_CONTROL(port)->path);
-	my_port_priv_destroy(port);
+	my_port_destroy_priv(port);
 }
 
 static int my_control_fifo_open(my_port_t *port)

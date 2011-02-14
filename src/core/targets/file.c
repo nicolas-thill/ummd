@@ -46,11 +46,12 @@ struct my_target_priv_s {
 #define MY_TARGET(p) ((my_target_priv_t *)(p))
 #define MY_TARGET_SIZE (sizeof(my_target_priv_t))
 
-static void my_target_file_event_handler(int fd, void *p)
+static int my_target_file_event_handler(int fd, void *p)
 {
 	my_target_priv_t *source = MY_TARGET(p);
 
 	/* do something */
+	return 0;
 }
 
 static my_port_t *my_target_file_create(my_core_t *core, my_port_conf_t *conf)

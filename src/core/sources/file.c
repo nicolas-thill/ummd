@@ -53,12 +53,12 @@ static int my_source_file_event_handler(int fd, void *p)
 	int n = sizeof(buf);
 
 	n = my_port_get(port, buf, n);
-	if (n == -1) {
+	if (n < 0) {
 		goto _ERR_port_get;
 	}
 
 	n = my_port_put(peer, buf, n);
-	if (n == -1) {
+	if (n < 0) {
 		goto _ERR_port_put;
 	}
 
@@ -117,12 +117,17 @@ static void my_source_file_destroy(my_port_t *port)
 
 static int my_source_file_open(my_port_t *port)
 {
+	int sock_opts;
+
 	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE(port)->path);
 	MY_SOURCE(port)->fd = open(MY_SOURCE(port)->path, O_RDONLY, 0);
 	if (MY_SOURCE(port)->fd == -1) {
 		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
+
+	sock_opts = fcntl(MY_SOURCE(port)->fd, F_GETFL, 0);
+	fcntl(MY_SOURCE(port)->fd, F_SETFL, sock_opts | O_NONBLOCK);
 
 	my_core_event_handler_add(port->core, MY_SOURCE(port)->fd, my_source_file_event_handler, port);
 
@@ -149,13 +154,18 @@ static int my_source_file_get(my_port_t *port, void *buf, int len)
 	int n;
 
 	n = read(MY_SOURCE(port)->fd, buf, len);
-	if (n == -1) {
+	if (n < 0) {
+		if ((errno == EWOULDBLOCK) || (errno == EINTR)) {
+			n = 0;
+			goto out;
+		}
+
 		my_log(MY_LOG_ERROR, "core/source: error reading from file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
-		return -1;
+		return n;
 	}
 
+out:
 	MY_DEBUG("core/source: read %d bytes from '%s'", n, MY_SOURCE(port)->path);
-
 	return n;
 }
 

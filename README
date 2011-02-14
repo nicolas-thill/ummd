@@ -5,12 +5,12 @@
 Requirements
 ============
 
- - FFmpeg
-   http://www.ffmpeg.org/
-   
  - libconfig
    http://www.hyperrealm.com/libconfig/
    
  - liblo
    http://liblo.sourceforge.net/
 
+ - mpg123
+   http://www.mpg123.de/
+   

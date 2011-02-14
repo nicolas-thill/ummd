@@ -33,17 +33,16 @@
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
-#include "util/url.h"
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 typedef struct my_source_data_s my_source_data_t;
 
 struct my_source_data_s {
 	my_dport_t _inherited;
-	char *path;
-	unsigned int ip_addr;
-	unsigned short port;
+	char *ip_addr;
+	int ip_port;
 	int fd;
 };
 
@@ -75,100 +74,122 @@ _ERR_port_get:
 
 static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 {
-	struct in_addr ip_addr_tmp;
 	my_port_t *port;
-	char *url;
-	char url_prot[5], url_ip[20], url_path[255];
-	int url_port, ret;
+	char *prop;
+	struct in_addr ia;
+	int ret;
 
 	port = my_port_create_priv(MY_SOURCE_SIZE);
 	if (!port) {
 		goto _MY_ERR_create_source;
 	}
 
-	url = my_prop_lookup(conf->properties, "url");
-	if (url) {
-		my_url_split(
-			url_prot, sizeof(url_prot),
-			NULL, 0, /* auth */
-			url_ip, sizeof(url_ip),
-			url_port,
-			NULL, 0, /* url path */
-			url
-		);
-
-		if (strlen(url_prot) > 0) {
-			if (strcmp(url_prot, "udp") != 0) {
-				my_log(MY_LOG_ERROR, "core/source: unknown url protocol '%s' in '%s'", url_prot, url);
-				goto _MY_ERR_parse_url;
-			}
-		}
-
-		if (strlen(url_ip) == 0) {
-			my_log(MY_LOG_ERROR, "core/source: missing ip component in '%s'", url);
-			goto _MY_ERR_parse_url;
-		}
-
-		ret = inet_pton(AF_INET, url_ip, &ip_addr_tmp);
-		if (ret != 1) {
-			my_log(MY_LOG_ERROR, "core/source: malformed ip component in '%s'", url);
-			goto _MY_ERR_parse_url;
-		}
-
-		if (url_port == 0) {
-			my_log(MY_LOG_ERROR, "core/source: missing port component in '%s'", url);
-			goto _MY_ERR_parse_url;
-		}
-
-		MY_SOURCE(port)->path = strdup(url_path);
-		MY_SOURCE(port)->ip_addr = ip_addr_tmp.s_addr;
-		MY_SOURCE(port)->port = (unsigned short)url_port;
+	prop = my_prop_lookup(conf->properties, "host");
+	if (!prop) {
+		my_log(MY_LOG_ERROR, "core/%s: missing 'host' property", port->conf->name);
+		goto _MY_ERR_conf;
 	}
+	ret = inet_pton(AF_INET, prop, &ia);
+	if (ret != 1) {
+		my_log(MY_LOG_ERROR, "core/%s: malformed host property '%s'", port->conf->name, prop);
+		goto _MY_ERR_conf;
+	}
+	MY_SOURCE(port)->ip_addr = prop;
+
+	prop = my_prop_lookup(conf->properties, "port");
+	if (!prop) {
+		my_log(MY_LOG_ERROR, "core/%s: missing 'port' property", port->conf->name);
+		goto _MY_ERR_conf;
+	}
+	MY_SOURCE(port)->ip_port = atoi(prop);
 
 	return port;
 
-	free(MY_SOURCE(port)->path);
-_MY_ERR_parse_url:
-	my_port_priv_destroy(port);
+_MY_ERR_conf:
+	my_port_destroy_priv(port);
 _MY_ERR_create_source:
 	return NULL;
 }
 
 static void my_source_udp_destroy(my_port_t *port)
 {
-	free(MY_SOURCE(port)->path);
 	my_port_destroy_priv(port);
 }
 
 static int my_source_udp_open(my_port_t *port)
 {
-	int sock_opts;
+	struct sockaddr_in sa;
+	struct ip_mreq mr;
+	int so;
 
-	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE(port)->path);
+	MY_DEBUG("core/%s: opening socket", port->conf->name);
 	MY_SOURCE(port)->fd = socket(PF_INET, SOCK_DGRAM, 0);
 	if (MY_SOURCE(port)->fd < 0) {
-		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
-		goto _MY_ERR_open_file;
+		my_log(MY_LOG_ERROR, "core/%s: error opening socket' (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_socket;
 	}
 
-	sock_opts = fcntl(MY_SOURCE(port)->fd, F_GETFL, 0);
-	fcntl(MY_SOURCE(port)->fd, F_SETFL, sock_opts | O_NONBLOCK);
+	MY_DEBUG("core/%s: setting socket to non-blocking mode", port->conf->name);
+	so = fcntl(MY_SOURCE(port)->fd, F_GETFL, 0);
+	if (so == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error getting socket flags (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_fcntl;
+	}
+	so = fcntl(MY_SOURCE(port)->fd, F_SETFL, so | O_NONBLOCK);
+	if (so == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error setting socket flags (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_fcntl;
+	}
+
+	my_mem_zero(&sa, sizeof(sa));
+	sa.sin_family = AF_INET;
+	sa.sin_addr.s_addr = htonl(INADDR_ANY);
+	sa.sin_port = htons(MY_SOURCE(port)->ip_port);
+
+	MY_DEBUG("core/%s: binding socket", port->conf->name);
+	if (bind(MY_SOURCE(port)->fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error binding socket socket (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_bind;
+	}
+
+	MY_DEBUG("core/%s: joining mcast group", port->conf->name);
+	mr.imr_multiaddr.s_addr = inet_addr(MY_SOURCE(port)->ip_addr);
+	mr.imr_interface.s_addr = htonl(INADDR_ANY);
+	so = setsockopt(MY_SOURCE(port)->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mr, sizeof(mr));
+	if (so == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_setsockopt;
+	}
 
 	my_core_event_handler_add(port->core, MY_SOURCE(port)->fd, my_source_udp_event_handler, port);
 
 	return 0;
 
-_MY_ERR_open_file:
+_MY_ERR_setsockopt:
+_MY_ERR_bind:
+_MY_ERR_fcntl:
+_MY_ERR_socket:
 	return -1;
 }
 
 static int my_source_udp_close(my_port_t *port)
 {
+	struct ip_mreq mr;
+	int so;
+
 	my_core_event_handler_del(port->core, MY_SOURCE(port)->fd);
 
-	MY_DEBUG("core/source: closing file '%s'", MY_SOURCE(port)->path);
+	MY_DEBUG("core/%s: leaving mcast group", port->conf->name);
+	mr.imr_multiaddr.s_addr = inet_addr(MY_SOURCE(port)->ip_addr);
+	mr.imr_interface.s_addr = htonl(INADDR_ANY);
+	so = setsockopt(MY_SOURCE(port)->fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mr, sizeof(mr));
+	if (so == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error leaving mcast group (%d :%s)", port->conf->name, errno, strerror(errno));
+	}
+
+	MY_DEBUG("core/%s: closing socket", port->conf->name);
 	if (close(MY_SOURCE(port)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error closing file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error closing file (%d: %s)", port->conf->name, errno, strerror(errno));
 	}
 
 	return 0;
@@ -185,18 +206,18 @@ static int my_source_udp_get(my_port_t *port, void *buf, int len)
 			goto out;
 		}
 
-		my_log(MY_LOG_ERROR, "core/source: error reading from udp source '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error reading from socket (%d: %s)", port->conf->name, errno, strerror(errno));
 		return n;
 	}
 
 out:
-	MY_DEBUG("core/source: read %d bytes from '%s'", n, MY_SOURCE(port)->path);
+	MY_DEBUG("core/%s: read %d bytes from from socket", port->conf->name, n);
 	return n;
 }
 
 my_port_impl_t my_source_udp = {
 	.name = "udp",
-	.desc = "Multicast source",
+	.desc = "UDP multicast source",
 	.create = my_source_udp_create,
 	.destroy = my_source_udp_destroy,
 	.open = my_source_udp_open,

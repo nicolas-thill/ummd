@@ -34,7 +34,6 @@
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
-#include "util/url.h"
 
 typedef struct my_source_priv_s my_source_priv_t;
 
@@ -99,32 +98,19 @@ static my_port_t *my_source_file_create(my_core_t *core, my_port_conf_t *conf)
 		goto _MY_ERR_create_source;
 	}
 
-	prop = my_prop_lookup(conf->properties, "url");
+	prop = my_prop_lookup(conf->properties, "path");
 	if (!prop) {
-		my_log(MY_LOG_ERROR, "core/source: missing 'url' property");
-		goto _MY_ERR_parse_url;
+		my_log(MY_LOG_ERROR, "core/%s: missing 'path' property");
+		goto _MY_ERR_conf;
 	}
-	my_url_split(
-		url_prot, sizeof(url_prot),
-		NULL, 0, /* auth */
-		NULL, 0, /* hostname */
-		NULL, /* port */
-		url_path, sizeof(url_path),
-		prop
-	);
-	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", prop);
-		goto _MY_ERR_parse_url;
-	}
-	MY_SOURCE(port)->path = strdup(url_path);
+	MY_SOURCE(port)->path = prop;
 
 	prop = my_prop_lookup(conf->properties, "audio-format");
 	MY_SOURCE(port)->codec = my_audio_codec_create(prop);
 
 	return port;
 
-	free(MY_SOURCE(port)->path);
-_MY_ERR_parse_url:
+_MY_ERR_conf:
 	my_port_destroy_priv(port);
 _MY_ERR_create_source:
 	return NULL;
@@ -133,7 +119,6 @@ _MY_ERR_create_source:
 static void my_source_file_destroy(my_port_t *port)
 {
 	my_audio_codec_destroy(MY_SOURCE(port)->codec);
-	free(MY_SOURCE(port)->path);
 	my_port_destroy_priv(port);
 }
 
@@ -141,10 +126,10 @@ static int my_source_file_open(my_port_t *port)
 {
 	int sock_opts;
 
-	MY_DEBUG("core/source: opening file '%s'", MY_SOURCE(port)->path);
+	MY_DEBUG("core/%s: opening file '%s'", port->conf->name, MY_SOURCE(port)->path);
 	MY_SOURCE(port)->fd = open(MY_SOURCE(port)->path, O_RDONLY, 0);
 	if (MY_SOURCE(port)->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error opening file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error opening file '%s' (%d: %s)", port->conf->name, MY_SOURCE(port)->path, errno, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
 
@@ -163,9 +148,9 @@ static int my_source_file_close(my_port_t *port)
 {
 	my_core_event_handler_del(port->core, MY_SOURCE(port)->fd);
 
-	MY_DEBUG("core/source: closing file '%s'", MY_SOURCE(port)->path);
+	MY_DEBUG("core/%s: closing file '%s'", port->conf->name, MY_SOURCE(port)->path);
 	if (close(MY_SOURCE(port)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/source: error closing file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error closing file '%s' (%d: %s)", port->conf->name, MY_SOURCE(port)->path, errno, strerror(errno));
 	}
 
 	return 0;
@@ -182,12 +167,12 @@ static int my_source_file_get(my_port_t *port, void *buf, int len)
 			goto out;
 		}
 
-		my_log(MY_LOG_ERROR, "core/source: error reading from file '%s' (%s)", MY_SOURCE(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error reading from file '%s' (%d: %s)", port->conf->name, MY_SOURCE(port)->path, errno, strerror(errno));
 		return n;
 	}
 
 out:
-	MY_DEBUG("core/source: read %d bytes from '%s'", n, MY_SOURCE(port)->path);
+	MY_DEBUG("core/%s: read %d bytes from file '%s'", port->conf->name, n, MY_SOURCE(port)->path);
 	return n;
 }
 

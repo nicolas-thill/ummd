@@ -20,12 +20,12 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/param.h> /* MIN/MAX */
 
 #include <mpg123.h>
-
-#include <sys/param.h> /* MIN/MAX */
 
 #include "util/audio.h"
 
@@ -207,95 +207,10 @@ _ERR_mpg123_feed:
 }
 
 
-/* FFmpeg encoder/decoder */
-
-static my_audio_codec_priv_t *my_audio_codec_create_ffmpeg(char *name);
-static void my_audio_codec_destroy_ffmpeg(my_audio_codec_t *c);
-
-static int my_audio_codec_decode_ffmpeg(my_audio_codec_t *c, void *ibuf, int *ilen, void *obuf, int *olen);
-static int my_audio_codec_encode_ffmpeg(my_audio_codec_t *c, void *ibuf, int *ilen, void *obuf, int *olen);
-
-static my_audio_codec_priv_t *my_audio_codec_create_ffmpeg(char *name)
-{
-	my_audio_codec_priv_t *c;
-	AVCodec *codec;
-
-	c = my_audio_codec_create_priv();
-	if (!c) {
-		goto _ERR_create_priv;
-	}
-
-	codec = avcodec_find_decoder_by_name(name);
-	if (!codec) {
-		my_log(MY_LOG_ERROR, "mp3: error finding codec (%s)", name);
-		goto _ERR_avcodec_find_decoder;
-	}
-
-	c->context = avcodec_alloc_context();
-	if (!c->context) {
-		my_log(MY_LOG_ERROR, "mp3: error allocating context");
-		goto _ERR_avcodec_alloc_context;
-	}
-
-	if (avcodec_open(c->context, codec) < 0) {
-		my_log(MY_LOG_ERROR, "mp3: error opening decoder");
-		goto _ERR_avcodec_open;
-	}
-
-	c->context->channels = 2;
-	c->context->sample_rate = 44100;
-	c->context->sample_fmt = SAMPLE_FMT_S16;
-
-	c->destroy = my_audio_codec_destroy_ffmpeg;
-	c->encode = my_audio_codec_encode_ffmpeg;
-	c->decode = my_audio_codec_decode_ffmpeg;
-
-	return c;
-
-	avcodec_close(c->context);
-_ERR_avcodec_open:
-	av_free(c->context);
-_ERR_avcodec_alloc_context:
-_ERR_avcodec_find_decoder:
-	my_audio_codec_destroy_priv(c);
-_ERR_create_priv:
-	return NULL;
-}
-
-static void my_audio_codec_destroy_ffmpeg(my_audio_codec_t *c)
-{
-	avcodec_close(MY_AUDIO_CODEC_PRIV(c)->context);
-	av_free(MY_AUDIO_CODEC_PRIV(c)->context);
-	my_audio_codec_destroy_priv(c);
-}
-
-static int my_audio_codec_encode_ffmpeg(my_audio_codec_t *c, void *ibuf, int *ilen, void *obuf, int *olen)
-{
-}
-
-static int my_audio_codec_decode_ffmpeg(my_audio_codec_t *c, void *ibuf, int *ilen, void *obuf, int *olen)
-{
-	int n;
-
-	n = avcodec_decode_audio2(MY_AUDIO_CODEC_PRIV(c)->context, obuf, olen, ibuf, *ilen);
-	if (n < 0) {
-		my_log(MY_LOG_ERROR, "mp3: error decoding audio");
-		return n;
-	}
-
-	*ilen = n;
-
-	return n;
-}
-
-
 /* public functions */
 
 int my_audio_codec_init(void)
 {
-	avcodec_init();
-	avcodec_register_all();
-
 	mpg123_init();
 
 	return 0;
@@ -313,8 +228,6 @@ my_audio_codec_t *my_audio_codec_create(char *name)
 	if (name) {
 		if (strcmp(name, "mp3") == 0) {
 			c = my_audio_codec_create_mpg123();
-		} else {
-			c = my_audio_codec_create_ffmpeg(name);
 		}
 	} else {
 		c = my_audio_codec_create_raw();

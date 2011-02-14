@@ -44,7 +44,7 @@ static my_port_t *my_filter_null_create(my_core_t *core, my_port_conf_t *conf)
 
 	port = my_port_create_priv(MY_FILTER_SIZE);
 	if (!port) {
-		my_log(MY_LOG_ERROR, "core/filter: error allocating data for filter #%d '%s'", conf->index, conf->name);
+		my_log(MY_LOG_ERROR, "core/%s: error allocating data", conf->name);
 		goto _MY_ERR_alloc;
 	}
 

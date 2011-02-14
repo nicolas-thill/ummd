@@ -107,7 +107,7 @@ static int my_wiring_create_fn(void *data, void *user, int flags)
 
 int my_wiring_create_all(my_core_t *core, my_conf_t *conf)
 {
-	MY_DEBUG("core/wiring: creating all wirings");
+	MY_DEBUG("core/wirings: creating all");
 	return my_list_iter(conf->wirings, my_wiring_create_fn, core);
 }
 

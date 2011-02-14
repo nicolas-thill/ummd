@@ -48,7 +48,7 @@ static my_port_impl_t *my_filter_impl_find(my_port_conf_t *conf)
 
 	impl = my_port_impl_lookup(&my_filters, impl_name);
 	if (!impl) {
-		my_log(MY_LOG_ERROR, "core/filter: unknown type '%s' for filter #%d '%s'", impl_name, conf->index, conf->name);
+		my_log(MY_LOG_ERROR, "core/%s: unknown type '%s'", conf->name, impl_name);
 	}
 
 	return impl;
@@ -77,12 +77,13 @@ static int my_filter_create_fn(void *data, void *user, int flags)
 
 int my_filter_create_all(my_core_t *core, my_conf_t *conf)
 {
-	MY_DEBUG("core/filter: creating all filters");
+	MY_DEBUG("core/filters: creating all");
 	return my_list_iter(conf->filters, my_filter_create_fn, core);
 }
 
 int my_filter_destroy_all(my_core_t *core)
 {
+	MY_DEBUG("core/filters: destroying all");
 	return my_port_destroy_all(core->filters);
 }
 

@@ -23,13 +23,4 @@
 #ifndef __MY_UTIL_URL_H
 #define __MY_UTIL_URL_H
 
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-
-#if ( LIBAVUTIL_VERSION_MAJOR < 50 )
-# define my_url_split  url_split
-#else
-# define my_url_split  ff_url_split
-#endif
-
 #endif /* __MY_UTIL_URL_H */

@@ -29,7 +29,6 @@
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
-#include "util/url.h"
 
 static my_list_t my_controls;
 
@@ -42,30 +41,15 @@ static my_port_impl_t *my_control_impl_find(my_port_conf_t *conf)
 {
 	my_port_impl_t *impl;
 	char *impl_name;
-	char *url;
-	char url_prot[10];
 
 	impl_name = my_prop_lookup(conf->properties, "type");
 	if (!impl_name) {
-		url = my_prop_lookup(conf->properties, "url");
-		if (url) {
-			my_url_split(
-				url_prot, sizeof(url_prot),
-				NULL, 0, /* auth */
-				NULL, 0, /* hostname */
-				NULL,    /* port */
-				NULL, 0, /* path */
-				url
-			);
-			impl_name = url_prot;
-		} else {
-			impl_name = "fifo";
-		}
+		impl_name = "fifo";
 	}
 
 	impl = my_port_impl_lookup(&my_controls, impl_name);
 	if (!impl) {
-		my_log(MY_LOG_ERROR, "core/control: unknown type '%s' for control #%d '%s'", impl_name, conf->index, conf->name);
+		my_log(MY_LOG_ERROR, "core/%s: unknown type '%s'", conf->name, impl_name);
 	}
 
 	return impl;
@@ -93,24 +77,25 @@ static int my_control_create_fn(void *data, void *user, int flags)
 
 int my_control_create_all(my_core_t *core, my_conf_t *conf)
 {
-	MY_DEBUG("core/control: creating all controls");
+	MY_DEBUG("core/controls: creating all");
 	return my_list_iter(conf->controls, my_control_create_fn, core);
 }
 
 int my_control_destroy_all(my_core_t *core)
 {
+	MY_DEBUG("core/controls: destroying all");
 	return my_port_destroy_all(core->controls);
 }
 
 int my_control_open_all(my_core_t *core)
 {
-	MY_DEBUG("core/control: opening all controls");
+	MY_DEBUG("core/controls: opening all");
 	return my_port_open_all(core->controls);
 }
 
 int my_control_close_all(my_core_t *core)
 {
-	MY_DEBUG("core/control: closing all controls");
+	MY_DEBUG("core/controls: closing all");
 	return my_port_close_all(core->controls);
 }
 

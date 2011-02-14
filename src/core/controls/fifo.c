@@ -33,7 +33,6 @@
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
-#include "util/url.h"
 
 typedef struct my_control_priv_s my_control_priv_t;
 
@@ -51,13 +50,13 @@ struct my_control_priv_s {
 
 static int my_control_fifo_event_handler(int fd, void *p)
 {
-	my_port_t *control = (my_port_t *)p;
+	my_port_t *port = (my_port_t *)p;
 	char buf[MY_CONTROL_BUF_SIZE + 1];
 	int n;
 
 	n = read(fd, buf, MY_CONTROL_BUF_SIZE);
 	if (n < 0) {
-		my_log(MY_LOG_ERROR, "core/control: error reading from fifo '%s' (%s)", MY_CONTROL(control)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error reading from fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 		goto _ERR_port_get;
 	}
 
@@ -66,8 +65,8 @@ static int my_control_fifo_event_handler(int fd, void *p)
 		if (buf[n - 1] == '\n') {
 			buf[n - 1] = '\0';
 		}
-		my_log(MY_LOG_DEBUG, "core/control: received '%s' from fifo '%s'", buf, MY_CONTROL(control)->path);
-		my_core_handle_command(control->core, buf);
+		my_log(MY_LOG_DEBUG, "core/%s: received '%s' from fifo '%s'", port->conf->name, buf, MY_CONTROL(port)->path);
+		my_core_handle_command(port->core, buf);
 	}
 	return 0;
 
@@ -79,39 +78,24 @@ _ERR_port_get:
 static my_port_t *my_control_fifo_create(my_core_t *core, my_port_conf_t *conf)
 {
 	my_port_t *port;
-	char *url;
-	char url_prot[5];
-	char url_path[255];
+	char *prop;
 
 	port = my_port_create_priv(MY_CONTROL_SIZE);
 	if (!port) {
 		goto _MY_ERR_alloc;
 	}
 
-	url = my_prop_lookup(conf->properties, "url");
-	if (!url) {
-		my_log(MY_LOG_ERROR, "core/control: missing 'url' property", url);
-		goto _MY_ERR_parse_url;
+	prop = my_prop_lookup(conf->properties, "path");
+	if (!prop) {
+		my_log(MY_LOG_ERROR, "core/%s: missing 'path' property", port->conf->name);
+		goto _MY_ERR_conf;
 	}
 
-	my_url_split(
-		url_prot, sizeof(url_prot),
-		NULL, 0, /* auth */
-		NULL, 0, /* hostname */
-		NULL, /* port */
-		url_path, sizeof(url_path),
-		url
-	);
-	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", url);
-		goto _MY_ERR_parse_url;
-	}
-	MY_CONTROL(port)->path = strdup(url_path);
+	MY_CONTROL(port)->path = prop;
 
 	return port;
 
-	free(MY_CONTROL(port)->path);
-_MY_ERR_parse_url:
+_MY_ERR_conf:
 	my_port_destroy_priv(port);
 _MY_ERR_alloc:
 	return NULL;
@@ -119,22 +103,21 @@ _MY_ERR_alloc:
 
 static void my_control_fifo_destroy(my_port_t *port)
 {
-	free(MY_CONTROL(port)->path);
 	my_port_destroy_priv(port);
 }
 
 static int my_control_fifo_open(my_port_t *port)
 {
-	MY_DEBUG("core/control: creating fifo '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: creating fifo '%s'", port->conf->name, MY_CONTROL(port)->path);
 	if (mkfifo(MY_CONTROL(port)->path, 0600) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error creating fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error creating fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 		goto _MY_ERR_create_fifo;
 	}
 
-	MY_DEBUG("core/control: opening fifo '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: opening fifo '%s'", port->conf->name, MY_CONTROL(port)->path);
 	MY_CONTROL(port)->fd = open(MY_CONTROL(port)->path, O_RDWR | O_NONBLOCK, 0);
 	if (MY_CONTROL(port)->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error opening fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error opening fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 		goto _MY_ERR_open_fifo;
 	}
 
@@ -151,14 +134,14 @@ static int my_control_fifo_close(my_port_t *port)
 {
 	my_core_event_handler_del(port->core, MY_CONTROL(port)->fd);
 
-	MY_DEBUG("core/control: closing fifo '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: closing fifo '%s'", port->conf->name, MY_CONTROL(port)->path);
 	if (close(MY_CONTROL(port)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error closing fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error closing fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 	}
 
-	MY_DEBUG("core/control: removing fifo '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: removing fifo '%s'", port->conf->name, MY_CONTROL(port)->path);
 	if (unlink(MY_CONTROL(port)->path) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error removing fifo '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error removing fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 	}
 
 	return 0;

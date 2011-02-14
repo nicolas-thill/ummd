@@ -32,7 +32,6 @@
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
-#include "util/url.h"
 
 typedef struct my_control_priv_s my_control_priv_t;
 
@@ -48,39 +47,24 @@ struct my_control_priv_s {
 static my_port_t *my_control_sock_create(my_core_t *core, my_port_conf_t *conf)
 {
 	my_port_t *port;
-	char *url;
-	char url_prot[5];
-	char url_path[255];
+	char *prop;
 
 	port = my_port_create_priv(MY_CONTROL_SIZE);
 	if (!port) {
 		goto _MY_ERR_alloc;
 	}
 
-	url = my_prop_lookup(conf->properties, "url");
-	if (!url) {
-		my_log(MY_LOG_ERROR, "core/control: missing 'url' property");
-		goto _MY_ERR_parse_url;
+	prop = my_prop_lookup(conf->properties, "path");
+	if (!prop) {
+		my_log(MY_LOG_ERROR, "core/%s: missing 'path' property", port->conf->name);
+		goto _MY_ERR_conf;
 	}
 
-	my_url_split(
-		url_prot, sizeof(url_prot),
-		NULL, 0, /* auth */
-		NULL, 0, /* hostname */
-		NULL, /* port */
-		url_path, sizeof(url_path),
-		url
-	);
-	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/control: missing path component in '%s'", url);
-		goto _MY_ERR_parse_url;
-	}
-	MY_CONTROL(port)->path = strdup(url_path);
+	MY_CONTROL(port)->path = prop;
 
 	return port;
 
-	free(MY_CONTROL(port)->path);
-_MY_ERR_parse_url:
+_MY_ERR_conf:
 	my_port_destroy_priv(port);
 _MY_ERR_alloc:
 	return NULL;
@@ -88,7 +72,6 @@ _MY_ERR_alloc:
 
 static void my_control_sock_destroy(my_port_t *port)
 {
-	free(MY_CONTROL(port)->path);
 	my_port_destroy_priv(port);
 }
 
@@ -96,10 +79,10 @@ static int my_control_sock_open(my_port_t *port)
 {
 	struct sockaddr_un sa;
 
-	MY_DEBUG("core/control: creating unix socket '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: creating unix socket '%s'", port->conf->name, MY_CONTROL(port)->path);
 	MY_CONTROL(port)->sock = socket(AF_UNIX, SOCK_DGRAM, 0);
 	if (MY_CONTROL(port)->sock == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error creating socket '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error creating socket '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 		goto _MY_ERR_create_sock;
 	}
 
@@ -107,9 +90,9 @@ static int my_control_sock_open(my_port_t *port)
 	sa.sun_family = AF_UNIX;
 	strncpy(sa.sun_path, MY_CONTROL(port)->path, sizeof(sa.sun_path));
 
-	MY_DEBUG("core/control: binding unix socket '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: binding unix socket '%s'", port->conf->name, MY_CONTROL(port)->path);
 	if (bind(MY_CONTROL(port)->sock, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error binding unix socket '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error binding unix socket '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 		goto _MY_ERR_bind_sock;
 	}
 
@@ -123,14 +106,14 @@ _MY_ERR_create_sock:
 
 static int my_control_sock_close(my_port_t *port)
 {
-	MY_DEBUG("core/control: closing unix socket '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: closing unix socket '%s'", port->conf->name, MY_CONTROL(port)->path);
 	if (close(MY_CONTROL(port)->sock) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error closing unix socket '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error closing unix socket '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 	}
 
-	MY_DEBUG("core/control: removing unix socket '%s'", MY_CONTROL(port)->path);
+	MY_DEBUG("core/%s: removing unix socket '%s'", port->conf->name, MY_CONTROL(port)->path);
 	if (unlink(MY_CONTROL(port)->path) == -1) {
-		my_log(MY_LOG_ERROR, "core/control: error removing unix socket '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error removing unix socket '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 	}
 
 	return 0;

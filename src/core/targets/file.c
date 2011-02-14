@@ -33,7 +33,6 @@
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
-#include "util/url.h"
 
 typedef struct my_target_priv_s my_target_priv_t;
 
@@ -57,38 +56,23 @@ static int my_target_file_event_handler(int fd, void *p)
 static my_port_t *my_target_file_create(my_core_t *core, my_port_conf_t *conf)
 {
 	my_port_t *port;
-	char *url;
-	char url_prot[5];
-	char url_path[255];
+	char *prop;
 
 	port = my_port_create_priv(MY_TARGET_SIZE);
 	if (!port) {
 		goto _MY_ERR_create_source;
 	}
 
-	url = my_prop_lookup(conf->properties, "url");
-	if (!url) {
-		my_log(MY_LOG_ERROR, "core/target: missing 'url' property");
-		goto _MY_ERR_parse_url;
+	prop = my_prop_lookup(conf->properties, "path");
+	if (!prop) {
+		my_log(MY_LOG_ERROR, "core/%s: missing 'path' property", port->conf->name);
+		goto _MY_ERR_conf;
 	}
-	my_url_split(
-		url_prot, sizeof(url_prot),
-		NULL, 0, /* auth */
-		NULL, 0, /* hostname */
-		NULL, /* port */
-		url_path, sizeof(url_path),
-		url
-	);
-	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/target: missing path component in '%s'", url);
-		goto _MY_ERR_parse_url;
-	}
-	MY_TARGET(port)->path = strdup(url_path);
+	MY_TARGET(port)->path = prop;
 
 	return port;
 
-	free(MY_TARGET(port)->path);
-_MY_ERR_parse_url:
+_MY_ERR_conf:
 	my_port_destroy_priv(port);
 _MY_ERR_create_source:
 	return NULL;
@@ -96,16 +80,15 @@ _MY_ERR_create_source:
 
 static void my_target_file_destroy(my_port_t *port)
 {
-	free(MY_TARGET(port)->path);
 	my_port_destroy_priv(port);
 }
 
 static int my_target_file_open(my_port_t *port)
 {
-	MY_DEBUG("core/target: opening file '%s'", MY_TARGET(port)->path);
+	MY_DEBUG("core/%s: opening file '%s'", port->conf->name, MY_TARGET(port)->path);
 	MY_TARGET(port)->fd = open(MY_TARGET(port)->path, O_WRONLY, 0);
 	if (MY_TARGET(port)->fd == -1) {
-		my_log(MY_LOG_ERROR, "core/target: error opening file '%s' (%s)", MY_TARGET(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error opening file '%s' (%s)", port->conf->name, MY_TARGET(port)->path, strerror(errno));
 		goto _MY_ERR_open_file;
 	}
 
@@ -121,9 +104,9 @@ static int my_target_file_close(my_port_t *port)
 {
 	my_core_event_handler_del(port->core, MY_TARGET(port)->fd);
 
-	MY_DEBUG("core/target: closing file '%s'", MY_TARGET(port)->path);
+	MY_DEBUG("core/%s: closing file '%s'", port->conf->name, MY_TARGET(port)->path);
 	if (close(MY_TARGET(port)->fd) == -1) {
-		my_log(MY_LOG_ERROR, "core/target: error closing file '%s' (%s)", MY_TARGET(port)->path, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error closing file '%s' (%d: %s)", port->conf->name, MY_TARGET(port)->path, errno, strerror(errno));
 	}
 
 	return 0;
@@ -135,11 +118,11 @@ static int my_target_file_put(my_port_t *port, void *buf, int len)
 
 	n = write(MY_TARGET(port)->fd, buf, len);
 	if (n == -1) {
-		my_log(MY_LOG_ERROR, "core/target: error writing from file '%s' (%d: %s)", MY_TARGET(port)->path, errno, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error writing to file '%s' (%d: %s)", port->conf->name, MY_TARGET(port)->path, errno, strerror(errno));
 		return -1;
 	}
 
-	MY_DEBUG("core/source: wrote %d bytes to '%s'", n, MY_TARGET(port)->path);
+	MY_DEBUG("core/%s: wrote %d bytes to file '%s'", port->conf->name, n, MY_TARGET(port)->path);
 
 	return n;
 }

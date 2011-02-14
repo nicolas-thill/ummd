@@ -152,12 +152,20 @@ static int my_target_oss_open(my_port_t *port)
 		MY_DEBUG("target/oss: device '%s', rate=%d", MY_TARGET(port)->path, val);
 	}
 
+	val = AFMT_S16_NE;
+	rc = ioctl(MY_TARGET(port)->fd, SNDCTL_DSP_SETFMT, &val);
+	if (rc == -1) {
+		my_log(MY_LOG_ERROR, "oss: error setting audio format for device '%s' (%s)", MY_TARGET(port)->path, strerror(errno));
+		goto _ERR_ioctl_SNDCTL_DSP_SETFMT;
+	}
+
 	my_core_event_handler_add(port->core, MY_TARGET(port)->fd, my_target_oss_event_handler, port);
 
 	MY_DEBUG("core/target: device '%s' opened", MY_TARGET(port)->path);
 
 	return 0;
 
+_ERR_ioctl_SNDCTL_DSP_SETFMT:
 _ERR_ioctl_SNDCTL_DSP_SPEED:
 _ERR_ioctl_SNDCTL_DSP_CHANNELS:
 	close(MY_TARGET(port)->fd);

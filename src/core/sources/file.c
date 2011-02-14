@@ -30,6 +30,7 @@
 
 #include "core/ports.h"
 
+#include "util/audio.h"
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
@@ -39,6 +40,7 @@ typedef struct my_source_priv_s my_source_priv_t;
 
 struct my_source_priv_s {
 	my_dport_t _inherited;
+	my_audio_codec_t *codec;
 	char *path;
 	int fd;
 };
@@ -49,17 +51,33 @@ struct my_source_priv_s {
 static int my_source_file_event_handler(int fd, void *p)
 {
 	my_port_t *port = MY_PORT(p), *peer = MY_PORT(MY_DPORT(port)->peer);
-	char buf[1024];
-	int n = sizeof(buf);
+	u_int8_t ibuf[16384], obuf[196608];
+	int ilen, olen;
+	u_int8_t *iptr;
+	int i, n;
 
-	n = my_port_get(port, buf, n);
-	if (n < 0) {
+	ilen = sizeof(ibuf);
+	ilen = my_port_get(port, ibuf, ilen);
+	if (ilen < -1) {
 		goto _ERR_port_get;
 	}
 
-	n = my_port_put(peer, buf, n);
-	if (n < 0) {
-		goto _ERR_port_put;
+	iptr = ibuf;
+	olen = sizeof(obuf);
+	while (ilen > 0) {
+		i = ilen;
+		n = my_audio_codec_decode(MY_SOURCE(port)->codec, iptr, &i, obuf, &olen);
+		if (n <= 0) {
+			break;
+		}
+		if (olen > 0) {
+			olen = my_port_put(peer, obuf, olen);
+			if (olen < -1) {
+				goto _ERR_port_put;
+			}
+		}
+		ilen -= i;
+		iptr += i;
 	}
 
 	return 0;
@@ -72,7 +90,7 @@ _ERR_port_get:
 static my_port_t *my_source_file_create(my_core_t *core, my_port_conf_t *conf)
 {
 	my_port_t *port;
-	char *url;
+	char *prop;
 	char url_prot[5];
 	char url_path[255];
 
@@ -81,8 +99,8 @@ static my_port_t *my_source_file_create(my_core_t *core, my_port_conf_t *conf)
 		goto _MY_ERR_create_source;
 	}
 
-	url = my_prop_lookup(conf->properties, "url");
-	if (!url) {
+	prop = my_prop_lookup(conf->properties, "url");
+	if (!prop) {
 		my_log(MY_LOG_ERROR, "core/source: missing 'url' property");
 		goto _MY_ERR_parse_url;
 	}
@@ -92,13 +110,16 @@ static my_port_t *my_source_file_create(my_core_t *core, my_port_conf_t *conf)
 		NULL, 0, /* hostname */
 		NULL, /* port */
 		url_path, sizeof(url_path),
-		url
+		prop
 	);
 	if (strlen(url_path) == 0) {
-		my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", url);
+		my_log(MY_LOG_ERROR, "core/source: missing path component in '%s'", prop);
 		goto _MY_ERR_parse_url;
 	}
 	MY_SOURCE(port)->path = strdup(url_path);
+
+	prop = my_prop_lookup(conf->properties, "audio-format");
+	MY_SOURCE(port)->codec = my_audio_codec_create(prop);
 
 	return port;
 
@@ -111,6 +132,7 @@ _MY_ERR_create_source:
 
 static void my_source_file_destroy(my_port_t *port)
 {
+	my_audio_codec_destroy(MY_SOURCE(port)->codec);
 	free(MY_SOURCE(port)->path);
 	my_port_destroy_priv(port);
 }

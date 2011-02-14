@@ -60,6 +60,8 @@ PKG_CHECK_MODULES(LIBCONFIG, libconfig >= 1.0)
 
 PKG_CHECK_MODULES(LIBLO, liblo >= 0.26)
 
+PKG_CHECK_MODULES(LIBMPG123, libmpg123 >= 1.12)
+
 AC_CONFIG_FILES([
 	Makefile
 	doc/Makefile

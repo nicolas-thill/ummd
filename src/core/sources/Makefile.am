@@ -6,4 +6,5 @@ noinst_LTLIBRARIES = libsources.la
 
 libsources_la_SOURCES = \
 	all.c \
-	file.c
+	file.c \
+	udp.c

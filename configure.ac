@@ -27,6 +27,10 @@ PKG_PROG_PKG_CONFIG
 MY_CFLAGS=""
 MY_LIBS=""
 
+# Wno-deprecated-declarations is required for avcodec_decode_audio2()
+# Wall does not like ff_url_split
+CFLAGS="$CFLAGS -Werror -Wno-deprecated-declarations"
+
 MY_CFG_DIR="${sysconfdir}"
 MY_LOG_DIR="${localstatedir}/log"
 MY_RUN_DIR="${localstatedir}/run"

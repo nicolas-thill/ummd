@@ -129,7 +129,7 @@ my_port_t *my_port_lookup_by_name(my_list_t *list, char *name)
 {
 	my_node_t *node;
 	my_port_t *port;
-	
+
 	for (node = list->head; node; node = node->next) {
 		port = MY_PORT(node->data);
 		if (strcmp(port->conf->name, name) == 0) {
@@ -182,10 +182,10 @@ int my_port_close_all(my_list_t *list)
 void my_port_link(my_port_t *port, my_port_t *peer)
 {
 	if (port) {
-		MY_DPORT(port)->peer = MY_DPORT(peer);
+		MY_DPORT(port)->peer = MY_PORT(MY_DPORT(peer));
 	}
 	if (peer) {
-		MY_DPORT(peer)->peer = MY_DPORT(port);
+		MY_DPORT(peer)->peer = MY_PORT(MY_DPORT(port));
 	}
 }
 

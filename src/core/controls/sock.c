@@ -31,6 +31,7 @@
 
 #include "util/log.h"
 #include "util/mem.h"
+#include "util/prop.h"
 #include "util/url.h"
 
 typedef struct my_control_priv_s my_control_priv_t;
@@ -105,7 +106,7 @@ static int my_control_sock_open(my_port_t *port)
 	my_mem_zero(&sa, sizeof(sa));
 	sa.sun_family = AF_UNIX;
 	strncpy(sa.sun_path, MY_CONTROL(port)->path, sizeof(sa.sun_path));
-	
+
 	MY_DEBUG("core/control: binding unix socket '%s'", MY_CONTROL(port)->path);
 	if (bind(MY_CONTROL(port)->sock, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		my_log(MY_LOG_ERROR, "core/control: error binding unix socket '%s' (%s)", MY_CONTROL(port)->path, strerror(errno));

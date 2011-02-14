@@ -34,6 +34,7 @@
 
 #include "util/list.h"
 #include "util/log.h"
+#include "util/prop.h"
 #include "util/mem.h"
 
 static char *my_conf_get_default_name(char *s, int n)
@@ -74,7 +75,7 @@ static my_port_conf_t *my_conf_parse_port(config_setting_t *group, char *class)
 
 		prop_name = config_setting_name(item);
 		prop_value = config_setting_get_string(item);
-		my_prop_add(port_conf->properties, prop_name, prop_value);
+		my_prop_add(port_conf->properties, (char *)prop_name, (char *)prop_value);
 	}
 
 	return port_conf;
@@ -241,8 +242,6 @@ _MY_ERR_alloc:
 
 void my_conf_destroy(my_conf_t *conf)
 {
-	void *data;
-
 	my_list_purge(conf->wirings, MY_LIST_PURGE_FLAG_FREE_DATA);
 	my_list_destroy(conf->wirings);
 

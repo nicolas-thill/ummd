@@ -49,16 +49,18 @@ struct my_control_priv_s {
 
 #define MY_CONTROL_BUF_SIZE  255
 
-static void my_control_fifo_event_handler(int fd, void *p)
+static int my_control_fifo_event_handler(int fd, void *p)
 {
 	my_port_t *control = (my_port_t *)p;
 	char buf[MY_CONTROL_BUF_SIZE + 1];
 	int n;
 
 	n = read(fd, buf, MY_CONTROL_BUF_SIZE);
-	if (n == -1) {
+	if (n < 0) {
 		my_log(MY_LOG_ERROR, "core/control: error reading from fifo '%s' (%s)", MY_CONTROL(control)->path, strerror(errno));
+		goto _ERR_port_get;
 	}
+
 	buf[MY_CONTROL_BUF_SIZE] = '\0';
 	if (n > 0) {
 		if (buf[n - 1] == '\n') {
@@ -67,6 +69,11 @@ static void my_control_fifo_event_handler(int fd, void *p)
 		my_log(MY_LOG_DEBUG, "core/control: received '%s' from fifo '%s'", buf, MY_CONTROL(control)->path);
 		my_core_handle_command(control->core, buf);
 	}
+	return 0;
+
+_ERR_port_put:
+_ERR_port_get:
+	return -1;
 }
 
 static my_port_t *my_control_fifo_create(my_core_t *core, my_port_conf_t *conf)

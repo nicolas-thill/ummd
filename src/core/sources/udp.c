@@ -30,6 +30,7 @@
 
 #include "core/ports.h"
 
+#include "util/audio.h"
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/prop.h"
@@ -44,6 +45,7 @@ struct my_source_data_s {
 	char *ip_addr;
 	int ip_port;
 	int fd;
+	my_audio_codec_t *codec;
 };
 
 #define MY_SOURCE(p) ((my_source_data_t *)(p))
@@ -52,17 +54,33 @@ struct my_source_data_s {
 static int my_source_udp_event_handler(int fd, void *p)
 {
 	my_port_t *port = MY_PORT(p), *peer = MY_PORT(MY_DPORT(port)->peer);
-	char buf[1024];
-	int n = sizeof(buf);
+	u_int8_t ibuf[16384], obuf[196608];
+	int ilen, olen;
+	u_int8_t *iptr;
+	int i, n;
 
-	n = my_port_get(port, buf, n);
-	if (n < 0) {
+	ilen = sizeof(ibuf);
+	ilen = my_port_get(port, ibuf, ilen);
+	if (ilen < -1) {
 		goto _ERR_port_get;
 	}
 
-	n = my_port_put(peer, buf, n);
-	if (n < 0) {
-		goto _ERR_port_put;
+	iptr = ibuf;
+	olen = sizeof(obuf);
+	while (ilen > 0) {
+		i = ilen;
+		n = my_audio_codec_decode(MY_SOURCE(port)->codec, iptr, &i, obuf, &olen);
+		if (n <= 0) {
+			break;
+		}
+		if (olen > 0) {
+			olen = my_port_put(peer, obuf, olen);
+			if (olen < -1) {
+				goto _ERR_port_put;
+			}
+		}
+		ilen -= i;
+		iptr += i;
 	}
 
 	return 0;
@@ -91,7 +109,7 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 	}
 	ret = inet_pton(AF_INET, prop, &ia);
 	if (ret != 1) {
-		my_log(MY_LOG_ERROR, "core/%s: malformed host property '%s'", port->conf->name, prop);
+		my_log(MY_LOG_ERROR, "core/%s: malformed 'host' property '%s'", port->conf->name, prop);
 		goto _MY_ERR_conf;
 	}
 	MY_SOURCE(port)->ip_addr = prop;
@@ -103,6 +121,9 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 	}
 	MY_SOURCE(port)->ip_port = atoi(prop);
 
+	prop = my_prop_lookup(conf->properties, "audio-format");
+	MY_SOURCE(port)->codec = my_audio_codec_create(prop);
+
 	return port;
 
 _MY_ERR_conf:
@@ -113,6 +134,7 @@ _MY_ERR_create_source:
 
 static void my_source_udp_destroy(my_port_t *port)
 {
+	my_audio_codec_destroy(MY_SOURCE(port)->codec);
 	my_port_destroy_priv(port);
 }
 
@@ -129,6 +151,33 @@ static int my_source_udp_open(my_port_t *port)
 		goto _MY_ERR_socket;
 	}
 
+	my_mem_zero(&sa, sizeof(sa));
+	sa.sin_family = AF_INET;
+	sa.sin_addr.s_addr = htonl(INADDR_ANY);
+	sa.sin_port = htons(MY_SOURCE(port)->ip_port);
+	MY_DEBUG("core/%s: binding socket", port->conf->name);
+	if (bind(MY_SOURCE(port)->fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error binding socket socket (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_bind;
+	}
+
+	mr.imr_multiaddr.s_addr = inet_addr(MY_SOURCE(port)->ip_addr);
+	mr.imr_interface.s_addr = htonl(INADDR_ANY);
+	MY_DEBUG("core/%s: joining mcast group", port->conf->name);
+	so = setsockopt(MY_SOURCE(port)->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mr, sizeof(mr));
+	if (so == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_setsockopt;
+	}
+
+	so = 65535;
+	MY_DEBUG("core/%s: setting socket receive buffer to %d", port->conf->name, so);
+	so = setsockopt(MY_SOURCE(port)->fd, SOL_SOCKET, SO_RCVBUF, &so, sizeof(so));
+	if (so == -1) {
+		my_log(MY_LOG_ERROR, "core/%s: error setting socket receive buffer (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_setsockopt;
+	}
+
 	MY_DEBUG("core/%s: setting socket to non-blocking mode", port->conf->name);
 	so = fcntl(MY_SOURCE(port)->fd, F_GETFL, 0);
 	if (so == -1) {
@@ -139,26 +188,6 @@ static int my_source_udp_open(my_port_t *port)
 	if (so == -1) {
 		my_log(MY_LOG_ERROR, "core/%s: error setting socket flags (%d: %s)", port->conf->name, errno, strerror(errno));
 		goto _MY_ERR_fcntl;
-	}
-
-	my_mem_zero(&sa, sizeof(sa));
-	sa.sin_family = AF_INET;
-	sa.sin_addr.s_addr = htonl(INADDR_ANY);
-	sa.sin_port = htons(MY_SOURCE(port)->ip_port);
-
-	MY_DEBUG("core/%s: binding socket", port->conf->name);
-	if (bind(MY_SOURCE(port)->fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
-		my_log(MY_LOG_ERROR, "core/%s: error binding socket socket (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_bind;
-	}
-
-	MY_DEBUG("core/%s: joining mcast group", port->conf->name);
-	mr.imr_multiaddr.s_addr = inet_addr(MY_SOURCE(port)->ip_addr);
-	mr.imr_interface.s_addr = htonl(INADDR_ANY);
-	so = setsockopt(MY_SOURCE(port)->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mr, sizeof(mr));
-	if (so == -1) {
-		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_setsockopt;
 	}
 
 	my_core_event_handler_add(port->core, MY_SOURCE(port)->fd, my_source_udp_event_handler, port);
@@ -211,7 +240,7 @@ static int my_source_udp_get(my_port_t *port, void *buf, int len)
 	}
 
 out:
-	MY_DEBUG("core/%s: read %d bytes from from socket", port->conf->name, n);
+	MY_DEBUG("core/%s: read %d bytes from socket", port->conf->name, n);
 	return n;
 }
 

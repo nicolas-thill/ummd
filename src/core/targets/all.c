@@ -103,7 +103,9 @@ int my_target_close_all(my_core_t *core)
 void my_target_register_all(void)
 {
 	MY_TARGET_REGISTER(file);
+#ifdef HAVE_OSS
 	MY_TARGET_REGISTER(oss);
+#endif
 /*
 	MY_TARGET_REGISTER(sock);
 	MY_TARGET_REGISTER(http_client);

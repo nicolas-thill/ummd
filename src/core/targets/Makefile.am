@@ -6,5 +6,11 @@ noinst_LTLIBRARIES = libtargets.la
 
 libtargets_la_SOURCES = \
 	all.c \
-	file.c \
-	oss.c
+	file.c
+
+if HAVE_OSS
+  libtargets_la_SOURCES += oss.c
+  libtargets_la_LDFLAGS = @OSS_LDFLAGS@
+  libtargets_la_CFLAGS  = @OSS_CFLAGS@
+  libtargets_la_LIBADD  = @OSS_LIBS@ 
+endif

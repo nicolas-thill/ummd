@@ -27,22 +27,37 @@ PKG_PROG_PKG_CONFIG
 MY_CFLAGS=""
 MY_LIBS=""
 
-# Wno-deprecated-declarations is required for avcodec_decode_audio2()
-# Wall does not like ff_url_split
-CFLAGS="$CFLAGS -Werror -Wno-deprecated-declarations"
-
 MY_CFG_DIR="${sysconfdir}"
 MY_LOG_DIR="${localstatedir}/log"
 MY_RUN_DIR="${localstatedir}/run"
 
+
+dnl # options
+
 AC_ARG_ENABLE(
 	[debug],
 	[AC_HELP_STRING([--enable-debug], [enable debugging support [default=no]])],
-	[enable_debug=$enableval],
-	[enable_debug='no']
+	[my_enable_debug=$enableval],
+	[my_enable_debug='no']
 )
-if test "x$enable_debug" = "xyes"; then
+if test "x$my_enable_debug" = "xyes"; then
 	AC_DEFINE([MY_DEBUGGING], [1], [ Define to 1 if debugging support is enabled. ])
+fi
+
+
+dnl # headers & libraries checks
+
+AC_CHECK_HEADERS([sys/soundcard.h linux/soundcard.h machine/soundcard.h])
+if test "x${ac_cv_header_sys_soundcard_h}" = "xyes" \
+	 -o "x${ac_cv_header_linux_soundcard_h}" = "xyes" \
+	 -o "x${ac_cv_header_machine_soundcard_h}" = "xyes";
+then
+	my_enable_oss="yes"
+else
+	my_enable_oss="no"
+fi
+if test "x$my_enable_oss" = "xyes"; then
+	AC_DEFINE([HAVE_OSS], [1], [ Define to 1 if OSS support is enabled. ])
 fi
 
 AC_CHECK_LIB(
@@ -70,6 +85,12 @@ AC_CONFIG_FILES([
 	src/core/targets/Makefile
 	src/util/Makefile
 ])
+
+AC_SUBST(HAVE_OSS)
+AC_SUBST(OSS_LIBS)
+AC_SUBST(OSS_LDFLAGS)
+AC_SUBST(OSS_CFLAGS)
+AM_CONDITIONAL( [HAVE_OSS], [test "x$my_enable_oss" = "xyes"] )
 
 AC_SUBST(MY_DEBUGGING)
 

@@ -133,6 +133,15 @@ my_core_t *my_core_create(void)
 
 	FD_ZERO(&core_priv->watching_fds);
 	core_priv->max_sock = 0;
+
+	my_audio_codec_init();
+
+	my_control_register_all();
+	my_filter_register_all();
+	my_source_register_all();
+	my_target_register_all();
+
+
 	return core;
 
 	my_list_destroy(core_priv->watched_fd_list);
@@ -156,6 +165,8 @@ void my_core_destroy(my_core_t *core)
 {
 	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
 
+	my_audio_codec_fini();
+
 	my_target_close_all(core);
 	my_source_close_all(core);
 	my_control_close_all(core);
@@ -178,12 +189,6 @@ void my_core_destroy(my_core_t *core)
 
 int my_core_init(my_core_t *core, my_conf_t *conf)
 {
-	my_audio_codec_init();
-	my_control_register_all();
-	my_filter_register_all();
-	my_source_register_all();
-	my_target_register_all();
-
 	if (my_control_create_all(core, conf) != 0) {
 		goto _MY_ERR_create_controls;
 	}

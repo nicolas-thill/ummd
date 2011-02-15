@@ -65,7 +65,7 @@ static int my_source_file_event_handler(int fd, void *p)
 	olen = sizeof(obuf);
 	while (ilen > 0) {
 		i = ilen;
-		n = my_audio_codec_decode(MY_SOURCE(port)->codec, iptr, &i, obuf, &olen);
+		n = my_audio_decode(MY_SOURCE(port)->codec, iptr, &i, obuf, &olen);
 		if (n <= 0) {
 			break;
 		}

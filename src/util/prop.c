@@ -143,3 +143,21 @@ int my_prop_iter(my_list_t *list, my_prop_iter_fn_t func, void *user)
 
 	return 0;
 }
+
+int my_prop_is_true(char *value)
+{
+	if (!value) {
+		return 0;
+	}
+	if (strcmp(value, "1") == 0) {
+		return 1;
+	}
+	if (strcmp(value, "enabled") == 0) {
+		return 1;
+	}
+	if (strcmp(value, "true") == 0) {
+		return 1;
+	}
+
+	return 0;
+}

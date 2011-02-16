@@ -36,4 +36,6 @@ typedef int (*my_prop_iter_fn_t)(char *name, char *value, void *user, int flags)
 
 extern int my_prop_iter(my_list_t *list, my_prop_iter_fn_t func, void *user);
 
+extern in my_prop_is_true(char *value);
+
 #endif /* __MY_UTIL_PROP_H */

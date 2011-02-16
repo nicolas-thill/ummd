@@ -74,8 +74,18 @@ static my_audio_codec_t *my_audio_codec_mp3_create(void)
 		goto _ERR_mpg123_new;
 	}
 
+	rc = mpg123_param(MY_AUDIO_CODEC_MP3(c)->mpg123_h, MPG123_FLAGS, MPG123_QUIET, 0.0);
+	if (rc != MPG123_OK) {
+		my_log(MY_LOG_ERROR, "audio/%s: error muting codec (%d: %s)", c->impl->name, rc, mpg123_plain_strerror(rc));
+		goto _ERR_mpg123_param;
+	}
+
 	rc = mpg123_format_none(MY_AUDIO_CODEC_MP3(c)->mpg123_h);
-	
+	if (rc != MPG123_OK) {
+		my_log(MY_LOG_ERROR, "audio/%s: error setting codec output format (%d: %s)", c->impl->name, rc, mpg123_plain_strerror(rc));
+		goto _ERR_mpg123_format;
+	}
+
 	rc = mpg123_format(MY_AUDIO_CODEC_MP3(c)->mpg123_h, 44100, MPG123_STEREO, MPG123_ENC_SIGNED_16);
 	if (rc != MPG123_OK) {
 		my_log(MY_LOG_ERROR, "audio/%s: error setting codec output format (%d: %s)", c->impl->name, rc, mpg123_plain_strerror(rc));
@@ -93,6 +103,7 @@ static my_audio_codec_t *my_audio_codec_mp3_create(void)
 _ERR_mpg123_open_feed:
 _ERR_mpg123_format:
 	mpg123_delete(MY_AUDIO_CODEC_MP3(c)->mpg123_h);
+_ERR_mpg123_param:
 _ERR_mpg123_new:
 	my_mem_free(c);
 _ERR_mem_alloc:
@@ -124,7 +135,7 @@ static int my_audio_codec_mp3_decode(my_audio_codec_t *c, void *ibuf, int *ilen,
 	rc = mpg123_read(MY_AUDIO_CODEC_MP3(c)->mpg123_h, obuf, *olen, &n);
 	if (rc == MPG123_NEW_FORMAT) {
 		mpg123_getformat(MY_AUDIO_CODEC_MP3(c)->mpg123_h, &rate, &channels, &enc);
-		MY_DEBUG("audio/%s: found new stream (rate: %li Hz, channels: %i, encoding: %08x)", c->impl->name, rate, channels, enc);
+		MY_DEBUG("audio/%s: found new stream (rate: %li Hz, channels: %i, encoding: 0x%08x)", c->impl->name, rate, channels, enc);
 	} else if ((rc != MPG123_OK) && (rc != MPG123_NEED_MORE)) {
 		my_log(MY_LOG_ERROR, "audio/%s: error decoding frame (%d: %s)", c->impl->name, rc, mpg123_plain_strerror(rc));
 		goto _ERR_mpg123_read;

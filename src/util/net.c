@@ -21,6 +21,7 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 #include <net/if.h>
 #include <linux/sockios.h>
@@ -30,7 +31,7 @@
 #include "util/log.h"
 
 
-int my_net_get_interface_addr(int fd, char *if_name, struct sockaddr *sa)
+int my_net_addr_get(int fd, char *if_name, struct sockaddr *sa)
 {
 	struct ifreq ifr;
 	int rc;
@@ -47,9 +48,8 @@ int my_net_get_interface_addr(int fd, char *if_name, struct sockaddr *sa)
 	if (sa->sa_family == AF_INET) {
 		memcpy(&(((struct sockaddr_in *)sa)->sin_addr), &(ifr.ifr_addr), sizeof(struct in_addr));
 	}
-
 #if HAVE_IPV6
-	if (sa->sa_family == AF_INET6) {
+	else if (sa->sa_family == AF_INET6) {
 		memcpy(&(((struct sockaddr_in6 *)sa)->sin6_addr), &(ifr.ifr_addr), sizeof(struct in6_addr));
 	}
 #endif
@@ -61,12 +61,12 @@ _ERR_ioctl:
 }
 
 
-static my_net4_addr_is_multicast(struct sockaddr *sa)
+static my_net_addr_is_multicast_4(struct sockaddr *sa)
 {
 	return IN_MULTICAST(ntohl(((struct sockaddr_in *)sa)->sin_addr.s_addr));
 }
 
-static my_net6_addr_is_multicast(struct sockaddr *sa)
+static my_net_addr_is_multicast_6(struct sockaddr *sa)
 {
 	return IN6_IS_ADDR_MULTICAST(&((struct sockaddr_in6 *)sa)->sin6_addr);
 }
@@ -74,12 +74,11 @@ static my_net6_addr_is_multicast(struct sockaddr *sa)
 int my_net_addr_is_multicast(struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET) {
-		return my_net4_addr_is_multicast(sa);
+		return my_net_addr_is_multicast_4(sa);
 	}
-
 #ifdef HAVE_IPV6
-	if (sa->sa_family == AF_INET6) {
-		return my_net6_addr_is_multicast(sa)
+	else if (sa->sa_family == AF_INET6) {
+		return my_net_addr_is_multicast_6(sa)
 	}
 #endif
 
@@ -87,25 +86,24 @@ int my_net_addr_is_multicast(struct sockaddr *sa)
 }
 
 
-static int my_net4_set_multicast_ttl(int fd, int ttl)
+static int my_net_mcast_set_ttl_4(int fd, int ttl)
 {
 	return setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
 }
 
-static int my_net6_set_multicast_ttl(int fd, int ttl)
+static int my_net_mcast_set_ttl_6(int fd, int ttl)
 {
 	return setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &ttl, sizeof(ttl));
 }
 
-int my_net_set_multicast_ttl(int fd, int ttl, struct sockaddr *sa)
+int my_net_mcast_set_ttl(int fd, int ttl, struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET) {
-		return my_net4_set_multicast_ttl(fd, ttl);
+		return my_net_mcast_set_ttl_4(fd, ttl);
 	}
-
 #if HAVE_IPV6
-	if (sa->sa_family == AF_INET6) {
-		return my_net6_set_multicast_ttl(fd, ttl);
+	else if (sa->sa_family == AF_INET6) {
+		return my_net_mcast_set_ttl_6(fd, ttl);
 	}
 #endif
 
@@ -113,21 +111,21 @@ int my_net_set_multicast_ttl(int fd, int ttl, struct sockaddr *sa)
 }
 
 
-static int my_net4_set_multicast_membership(int fd, int op, struct sockaddr *sa_local, struct sockaddr *sa_group)
+static int my_net_mcast_set_membership_4(int fd, int op, struct sockaddr *sa_local, struct sockaddr *sa_group)
 {
 	struct ip_mreq mr;
 
-/*
 	mr.imr_interface.s_addr = ((struct sockaddr_in *)sa_local)->sin_addr.s_addr;
 	mr.imr_multiaddr.s_addr = ((struct sockaddr_in *)sa_group)->sin_addr.s_addr;
-*/
+/*
 	memcpy(&(mr.imr_interface), &(((struct sockaddr_in *)sa_local)->sin_addr), sizeof(struct in_addr));
 	memcpy(&(mr.imr_multiaddr), &(((struct sockaddr_in *)sa_group)->sin_addr), sizeof(struct in_addr));
+*/
 
 	return setsockopt(fd, IPPROTO_IP, op, (const void *)&mr, sizeof(mr));
 }
 
-static int my_net6_set_multicast_membership(int fd, int op, struct sockaddr *sa_local, struct sockaddr *sa_group)
+static int my_net_mcast_set_membership_6(int fd, int op, struct sockaddr *sa_local, struct sockaddr *sa_group)
 {
 	struct ipv6_mreq mr;
 
@@ -137,32 +135,83 @@ static int my_net6_set_multicast_membership(int fd, int op, struct sockaddr *sa_
 	return setsockopt(fd, IPPROTO_IPV6, op, &mr, sizeof(mr));
 }
 
-int my_net_join_multicast(int fd, struct sockaddr *sa, struct sockaddr *sa_group)
+int my_net_mcast_join(int fd, struct sockaddr *sa, struct sockaddr *sa_group)
 {
 	if (sa->sa_family == AF_INET) {
-		return my_net4_set_multicast_membership(fd, IP_ADD_MEMBERSHIP, sa, sa_group);
+		return my_net_mcast_set_membership_4(fd, IP_ADD_MEMBERSHIP, sa, sa_group);
 	}
-
 #if HAVE_IPV6
-	if (sa->sa_family == AF_INET6) {
-		return my_net6_set_multicast_membership(fd, IPV6_ADD_MEMBERSHIP, sa, sa_group);
+	else if (sa->sa_family == AF_INET6) {
+		return my_net_mcast_set_membership_6(fd, IPV6_ADD_MEMBERSHIP, sa, sa_group);
 	}
 #endif
 
 	return -1;
 }
 
-int my_net_leave_multicast(int fd, struct sockaddr *sa, struct sockaddr *sa_group)
+int my_net_mcast_leave(int fd, struct sockaddr *sa, struct sockaddr *sa_group)
 {
 	if (sa->sa_family == AF_INET) {
-		return my_net4_set_multicast_membership(fd, IP_DROP_MEMBERSHIP, sa, sa_group);
+		return my_net_mcast_set_membership_4(fd, IP_DROP_MEMBERSHIP, sa, sa_group);
 	}
-
 #if HAVE_IPV6
-	if (sa->sa_family == AF_INET6) {
-		return my_net6_set_multicast_membership(fd, IPV6_DROP_MEMBERSHIP, sa, sa_group);
+	else if (sa->sa_family == AF_INET6) {
+		return my_net_mcast_set_membership_6(fd, IPV6_DROP_MEMBERSHIP, sa, sa_group);
 	}
 #endif
 
 	return -1;
+}
+
+
+int my_sock_create(int family, int type)
+{
+	return socket(family, type, 0);
+}
+
+int my_sock_close(int fd)
+{
+	return close(fd);
+}
+
+int my_sock_bind(int fd, struct sockaddr *sa)
+{
+	int sa_len;
+
+	if (sa->sa_family == AF_INET) {
+		sa_len = sizeof(struct sockaddr_in);
+	}
+#ifdef HAVE_IPV6
+	else if (sa->sa_family == AF_INET6) {
+		sa_len = sizeof(struct sockaddr_in6);
+	}
+#endif
+
+	return bind(fd, sa, sa_len);
+}
+
+int my_sock_set_recv_buffer_size(int fd, int size)
+{
+	int so = size;
+
+	return setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &so, sizeof(so));
+}
+
+int my_sock_set_reuseaddr(int fd)
+{
+	int so = 1;
+
+	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &so, sizeof(so));
+}
+
+int my_sock_set_nonblock(int fd)
+{
+	int so;
+
+	so = fcntl(fd, F_GETFL, 0);
+	if (so < 0) {
+		return so;
+	}
+
+	return fcntl(fd, F_SETFL, so | O_NONBLOCK);
 }

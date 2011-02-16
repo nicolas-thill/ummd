@@ -21,7 +21,6 @@
  */
 
 #include <errno.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -45,6 +44,8 @@ struct my_source_data_s {
 	char *ip_addr;
 	int ip_port;
 	int fd;
+	struct sockaddr *sa_local;
+	struct sockaddr *sa_group;
 	my_audio_codec_t *codec;
 };
 
@@ -95,11 +96,12 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 	my_port_t *port;
 	char *prop;
 	struct in_addr ia;
+	int sa_len;
 	int ret;
 
 	port = my_port_create_priv(MY_SOURCE_SIZE);
 	if (!port) {
-		goto _MY_ERR_create_source;
+		goto _MY_ERR_create_priv;
 	}
 
 	prop = my_prop_lookup(conf->properties, "host");
@@ -124,104 +126,131 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 	prop = my_prop_lookup(conf->properties, "audio-format");
 	MY_SOURCE(port)->codec = my_audio_codec_create(prop);
 
+	sa_len = sizeof(struct sockaddr_in);
+
+	MY_SOURCE(port)->sa_local = my_mem_alloc(sa_len);
+	if (!MY_SOURCE(port)->sa_local) {
+		goto _MY_ERR_alloc_sa_local;
+	}
+	my_mem_zero(MY_SOURCE(port)->sa_local, sa_len);
+
+	MY_SOURCE(port)->sa_group = my_mem_alloc(sa_len);
+	if (!MY_SOURCE(port)->sa_group) {
+		goto _MY_ERR_alloc_sa_group;
+	}
+	my_mem_zero(MY_SOURCE(port)->sa_group, sa_len);
+
+	((struct sockaddr_in *)MY_SOURCE(port)->sa_local)->sin_family = AF_INET;
+	((struct sockaddr_in *)MY_SOURCE(port)->sa_local)->sin_addr.s_addr = htonl(INADDR_ANY);
+	((struct sockaddr_in *)MY_SOURCE(port)->sa_local)->sin_port = htons(MY_SOURCE(port)->ip_port);
+
+	((struct sockaddr_in *)MY_SOURCE(port)->sa_group)->sin_family = AF_INET;
+	((struct sockaddr_in *)MY_SOURCE(port)->sa_group)->sin_addr.s_addr = inet_addr(MY_SOURCE(port)->ip_addr);
+
 	return port;
 
 _MY_ERR_conf:
+	my_mem_free(MY_SOURCE(port)->sa_group);
+_MY_ERR_alloc_sa_group:
+	my_mem_free(MY_SOURCE(port)->sa_local);
+_MY_ERR_alloc_sa_local:
 	my_port_destroy_priv(port);
-_MY_ERR_create_source:
+_MY_ERR_create_priv:
 	return NULL;
 }
 
 static void my_source_udp_destroy(my_port_t *port)
 {
+	my_mem_free(MY_SOURCE(port)->sa_group);
+	my_mem_free(MY_SOURCE(port)->sa_local);
 	my_audio_codec_destroy(MY_SOURCE(port)->codec);
 	my_port_destroy_priv(port);
 }
 
 static int my_source_udp_open(my_port_t *port)
 {
-	struct sockaddr_in sa;
-	struct ip_mreq mr;
-	int so;
+	int rc;
 
 	MY_DEBUG("core/%s: opening socket", port->conf->name);
-	MY_SOURCE(port)->fd = socket(PF_INET, SOCK_DGRAM, 0);
+	MY_SOURCE(port)->fd = my_sock_create(PF_INET, SOCK_DGRAM);
 	if (MY_SOURCE(port)->fd < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error opening socket' (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_socket;
+		goto _MY_ERR_sock_create;
 	}
 
-	my_mem_zero(&sa, sizeof(sa));
-	sa.sin_family = AF_INET;
-	sa.sin_addr.s_addr = htonl(INADDR_ANY);
-	sa.sin_port = htons(MY_SOURCE(port)->ip_port);
 	MY_DEBUG("core/%s: binding socket", port->conf->name);
-	if (bind(MY_SOURCE(port)->fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
+	rc = my_sock_bind(MY_SOURCE(port)->fd, MY_SOURCE(port)->sa_local);
+	if (rc < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error binding socket socket (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_bind;
+		goto _MY_ERR_sock_bind;
 	}
 
-	mr.imr_multiaddr.s_addr = inet_addr(MY_SOURCE(port)->ip_addr);
-	mr.imr_interface.s_addr = htonl(INADDR_ANY);
 	MY_DEBUG("core/%s: joining mcast group", port->conf->name);
-	so = setsockopt(MY_SOURCE(port)->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mr, sizeof(mr));
-	if (so == -1) {
+	rc = my_net_mcast_join(MY_SOURCE(port)->fd, MY_SOURCE(port)->sa_local, MY_SOURCE(port)->sa_group);
+	if (rc < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_setsockopt;
+		goto _MY_ERR_mcast_join;
 	}
 
-	so = 65535;
-	MY_DEBUG("core/%s: setting socket receive buffer to %d", port->conf->name, so);
-	so = setsockopt(MY_SOURCE(port)->fd, SOL_SOCKET, SO_RCVBUF, &so, sizeof(so));
-	if (so == -1) {
+	MY_DEBUG("core/%s: setting socket receive buffer to %d", port->conf->name, 65535);
+	rc = my_sock_set_recv_buffer_size(MY_SOURCE(port)->fd, 65535);
+	if (rc < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error setting socket receive buffer (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_setsockopt;
+		goto _MY_ERR_set_recv_buffer_size;
 	}
 
-	MY_DEBUG("core/%s: setting socket to non-blocking mode", port->conf->name);
-	so = fcntl(MY_SOURCE(port)->fd, F_GETFL, 0);
-	if (so == -1) {
-		my_log(MY_LOG_ERROR, "core/%s: error getting socket flags (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_fcntl;
+	MY_DEBUG("core/%s: putting socket in non-blocking mode", port->conf->name);
+	rc = my_sock_set_nonblock(MY_SOURCE(port)->fd);
+	if (rc < 0) {
+		my_log(MY_LOG_ERROR, "core/%s: error putting socket in non-blocking mode (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_set_nonblock;
 	}
-	so = fcntl(MY_SOURCE(port)->fd, F_SETFL, so | O_NONBLOCK);
-	if (so == -1) {
-		my_log(MY_LOG_ERROR, "core/%s: error setting socket flags (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_fcntl;
+
+	MY_DEBUG("core/%s: reusing socket addr", port->conf->name);
+	rc = my_sock_set_reuseaddr(MY_SOURCE(port)->fd);
+	if (rc < 0) {
+		my_log(MY_LOG_ERROR, "core/%s: error reusing socket addr (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_set_reuseaddr;
 	}
 
 	my_core_event_handler_add(port->core, MY_SOURCE(port)->fd, my_source_udp_event_handler, port);
 
 	return 0;
 
-_MY_ERR_setsockopt:
-_MY_ERR_bind:
-_MY_ERR_fcntl:
-_MY_ERR_socket:
+_MY_ERR_set_reuseaddr:
+_MY_ERR_set_nonblock:
+_MY_ERR_set_recv_buffer_size:
+_MY_ERR_mcast_join:
+_MY_ERR_sock_bind:
+_MY_ERR_sock_create:
 	return -1;
 }
 
 static int my_source_udp_close(my_port_t *port)
 {
-	struct ip_mreq mr;
-	int so;
+	int rc;
 
 	my_core_event_handler_del(port->core, MY_SOURCE(port)->fd);
 
 	MY_DEBUG("core/%s: leaving mcast group", port->conf->name);
-	mr.imr_multiaddr.s_addr = inet_addr(MY_SOURCE(port)->ip_addr);
-	mr.imr_interface.s_addr = htonl(INADDR_ANY);
-	so = setsockopt(MY_SOURCE(port)->fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mr, sizeof(mr));
-	if (so == -1) {
-		my_log(MY_LOG_ERROR, "core/%s: error leaving mcast group (%d :%s)", port->conf->name, errno, strerror(errno));
+	rc = my_net_mcast_leave(MY_SOURCE(port)->fd, MY_SOURCE(port)->sa_local, MY_SOURCE(port)->sa_group);
+	if (rc < 0) {
+		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_mcast_leave;
 	}
 
 	MY_DEBUG("core/%s: closing socket", port->conf->name);
-	if (close(MY_SOURCE(port)->fd) == -1) {
+	rc = my_sock_close(MY_SOURCE(port)->fd);
+	if (rc < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error closing file (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_sock_close;
 	}
 
 	return 0;
+
+_MY_ERR_sock_close:
+_MY_ERR_mcast_leave:
+	return rc;
 }
 
 static int my_source_udp_get(my_port_t *port, void *buf, int len)

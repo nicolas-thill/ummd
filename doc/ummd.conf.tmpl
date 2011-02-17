@@ -9,10 +9,6 @@
 controls = (
 	{ type = "fifo"; path = "$MY_RUN_DIR/ummd.fifo"; },
 	{ type = "sock"; path = "$MY_RUN_DIR/ummd.sock"; }
-/*
-	{ url = "osc://127.0.0.1:7000/"; },
-	{ url = "http://127.0.0.1:8000/"; }
-*/
 );
 
 filters = (
@@ -22,30 +18,14 @@ filters = (
 sources = (
 	{ type = "file"; path = "/dev/urandom"; },
 	{ type = "udp"; host = "224.3.2.1"; port = "1234"; }
-/*
-	{ url = "udp://127.0.0.1:1001/"; type = "client"; },
-	{ url = "udp://127.0.0.1:1002/"; type = "server"; }
-*/
 );
 
 targets = (
 	{ type = "oss"; path = "/dev/dsp"; rate="44100"; channels="2"; }
-/*
-	{ url = "udp://127.0.0.1:1002/"; type = "client"; },
-	{ url = "udp://224.1.1.1:1002/"; },
-	{ url = "udp://127.0.0.1:1001/"; type = "server"; }
-*/
 );
 
 wirings = (
 
 	# connect output of source #0 to input of target #0
 	{ source = "sources[0]"; target = "targets[0]"; }
-
-/*
-	# connect output of source #0 to input of filter #0
-	{ source = "sources[0]"; target = "filters[0]"; },
-	# connect output of filter #0 to input of target #0
-	{ source = "filters[0]"; target = "targets[0]"; }
-*/
 );

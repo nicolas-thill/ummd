@@ -42,7 +42,7 @@ int my_net_addr_get(int fd, char *if_name, struct sockaddr *sa)
 	rc = ioctl(fd, SIOCGIFADDR, &ifr);
 	if (rc < 0) {
 		my_log(MY_LOG_ERROR, "util/net: error getting address for interface '%s' (%d: %s)", if_name, errno, strerror(errno));
-		goto _ERR_ioctl;
+		goto _MY_ERR_ioctl;
 	}
 
 	if (sa->sa_family == AF_INET) {
@@ -56,7 +56,7 @@ int my_net_addr_get(int fd, char *if_name, struct sockaddr *sa)
 
 	return 0;
 
-_ERR_ioctl:
+_MY_ERR_ioctl:
 	return rc;
 }
 

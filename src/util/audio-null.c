@@ -38,13 +38,13 @@ static my_audio_codec_t *my_audio_codec_null_create(void)
 	c = my_mem_alloc(sizeof(*c));
 	if (!c) {
 		my_log(MY_LOG_ERROR, "audio/%s: error allocating codec data (%d: %s)", c->impl->name, errno, strerror(errno));
-		goto _ERR_mem_alloc;
+		goto _MY_ERR_mem_alloc;
 	}
 	
 	return c;
 
 	my_mem_free(c);
-_ERR_mem_alloc:
+_MY_ERR_mem_alloc:
 	return NULL;
 }
 

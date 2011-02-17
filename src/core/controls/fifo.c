@@ -57,7 +57,7 @@ static int my_control_fifo_event_handler(int fd, void *p)
 	n = read(fd, buf, MY_CONTROL_BUF_SIZE);
 	if (n < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error reading from fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
-		goto _ERR_port_get;
+		goto _MY_ERR_port_get;
 	}
 
 	buf[MY_CONTROL_BUF_SIZE] = '\0';
@@ -70,8 +70,7 @@ static int my_control_fifo_event_handler(int fd, void *p)
 	}
 	return 0;
 
-_ERR_port_put:
-_ERR_port_get:
+_MY_ERR_port_get:
 	return -1;
 }
 

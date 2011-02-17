@@ -118,7 +118,7 @@ static int my_target_oss_open(my_port_t *port)
 		rc = ioctl(MY_TARGET(port)->fd, SNDCTL_DSP_CHANNELS, &val);
 		if (rc == -1) {
 			my_log(MY_LOG_ERROR, "core/%s: error setting channels for device '%s' (%d: %s)", port->conf->name, MY_TARGET(port)->path, errno, strerror(errno));
-			goto _ERR_ioctl_SNDCTL_DSP_CHANNELS;
+			goto _MY_ERR_ioctl_SNDCTL_DSP_CHANNELS;
 		}
 		MY_TARGET(port)->channels = val;
 		MY_DEBUG("core/%s: device '%s', channels=%d", port->conf->name, MY_TARGET(port)->path, val);
@@ -129,7 +129,7 @@ static int my_target_oss_open(my_port_t *port)
 		rc = ioctl(MY_TARGET(port)->fd, SNDCTL_DSP_SPEED, &val);
 		if (rc == -1) {
 			my_log(MY_LOG_ERROR, "core/%s: error setting sampling rate for device '%s' (%d: %s)", port->conf->name, MY_TARGET(port)->path, errno, strerror(errno));
-			goto _ERR_ioctl_SNDCTL_DSP_SPEED;
+			goto _MY_ERR_ioctl_SNDCTL_DSP_SPEED;
 		}
 		MY_TARGET(port)->rate = val;
 		MY_DEBUG("core/%s: device '%s', rate=%d", port->conf->name, MY_TARGET(port)->path, val);
@@ -139,7 +139,7 @@ static int my_target_oss_open(my_port_t *port)
 	rc = ioctl(MY_TARGET(port)->fd, SNDCTL_DSP_SETFMT, &val);
 	if (rc == -1) {
 		my_log(MY_LOG_ERROR, "core/%s: error setting audio format for device '%s' (%d: %s)", port->conf->name, MY_TARGET(port)->path, errno, strerror(errno));
-		goto _ERR_ioctl_SNDCTL_DSP_SETFMT;
+		goto _MY_ERR_ioctl_SNDCTL_DSP_SETFMT;
 	}
 
 	my_core_event_handler_add(port->core, MY_TARGET(port)->fd, my_target_oss_event_handler, port);
@@ -148,9 +148,9 @@ static int my_target_oss_open(my_port_t *port)
 
 	return 0;
 
-_ERR_ioctl_SNDCTL_DSP_SETFMT:
-_ERR_ioctl_SNDCTL_DSP_SPEED:
-_ERR_ioctl_SNDCTL_DSP_CHANNELS:
+_MY_ERR_ioctl_SNDCTL_DSP_SETFMT:
+_MY_ERR_ioctl_SNDCTL_DSP_SPEED:
+_MY_ERR_ioctl_SNDCTL_DSP_CHANNELS:
 	close(MY_TARGET(port)->fd);
 _MY_ERR_open_file:
 	return -1;

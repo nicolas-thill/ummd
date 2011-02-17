@@ -60,16 +60,16 @@ static my_wiring_t *my_wiring_priv_create(my_core_t *core, my_wiring_conf_t *con
 
 	source = my_wiring_source_lookup(core, conf->source);
 	if (source == NULL) {
-		goto _ERR_source_lookup;
+		goto _MY_ERR_source_lookup;
 	}
 	target = my_wiring_target_lookup(core, conf->target);
 	if (target == NULL) {
-		goto _ERR_target_lookup;
+		goto _MY_ERR_target_lookup;
 	}
 
 	wiring = my_mem_alloc(sizeof(*wiring));
 	if (!wiring) {
-		goto _ERR_wiring_alloc;
+		goto _MY_ERR_wiring_alloc;
 	}
 
 	wiring->core = core;
@@ -80,9 +80,9 @@ static my_wiring_t *my_wiring_priv_create(my_core_t *core, my_wiring_conf_t *con
 
 	return wiring;
 
-_ERR_wiring_alloc:
-_ERR_target_lookup:
-_ERR_source_lookup:
+_MY_ERR_wiring_alloc:
+_MY_ERR_target_lookup:
+_MY_ERR_source_lookup:
 	return NULL;
 }
 

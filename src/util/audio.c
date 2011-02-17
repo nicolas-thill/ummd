@@ -113,20 +113,20 @@ my_audio_codec_t *my_audio_codec_create(char *name)
 
 	impl = my_audio_codec_impl_find(name);
 	if (!impl) {
-		goto _ERR_find;
+		goto _MY_ERR_find;
 	}
 
 	c = impl->create();
 	if (!c) {
-		goto _ERR_create;
+		goto _MY_ERR_create;
 	}
 
 	c->impl = impl;
 
 	return c;
 
-_ERR_create:
-_ERR_find:
+_MY_ERR_create:
+_MY_ERR_find:
 	return NULL;
 }
 

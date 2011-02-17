@@ -63,7 +63,7 @@ static int my_source_udp_event_handler(int fd, void *p)
 	ilen = sizeof(ibuf);
 	ilen = my_port_get(port, ibuf, ilen);
 	if (ilen < -1) {
-		goto _ERR_port_get;
+		goto _MY_ERR_port_get;
 	}
 
 	iptr = ibuf;
@@ -77,7 +77,7 @@ static int my_source_udp_event_handler(int fd, void *p)
 		if (olen > 0) {
 			olen = my_port_put(peer, obuf, olen);
 			if (olen < -1) {
-				goto _ERR_port_put;
+				goto _MY_ERR_port_put;
 			}
 		}
 		ilen -= i;
@@ -86,8 +86,8 @@ static int my_source_udp_event_handler(int fd, void *p)
 
 	return 0;
 
-_ERR_port_put:
-_ERR_port_get:
+_MY_ERR_port_put:
+_MY_ERR_port_get:
 	return -1;
 }
 

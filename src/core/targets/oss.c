@@ -128,7 +128,7 @@ static int my_target_oss_open(my_port_t *port)
 		val = MY_TARGET(port)->rate;
 		rc = ioctl(MY_TARGET(port)->fd, SNDCTL_DSP_SPEED, &val);
 		if (rc == -1) {
-			my_log(MY_LOG_ERROR, "oss: error setting sampling rate for device '%s' (%d: %s)", port->conf->name, MY_TARGET(port)->path, errno, strerror(errno));
+			my_log(MY_LOG_ERROR, "core/%s: error setting sampling rate for device '%s' (%d: %s)", port->conf->name, MY_TARGET(port)->path, errno, strerror(errno));
 			goto _ERR_ioctl_SNDCTL_DSP_SPEED;
 		}
 		MY_TARGET(port)->rate = val;

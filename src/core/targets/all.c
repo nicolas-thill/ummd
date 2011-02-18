@@ -112,6 +112,7 @@ void my_target_register_all(void)
 	MY_TARGET_REGISTER(rtp_client);
 	MY_TARGET_REGISTER(udp_client);
 */
+	MY_TARGET_REGISTER(udp);
 }
 
 #ifdef MY_DEBUGGING

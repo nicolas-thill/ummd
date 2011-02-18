@@ -191,13 +191,6 @@ static int my_source_udp_open(my_port_t *port)
 		goto _MY_ERR_sock_bind;
 	}
 
-	MY_DEBUG("core/%s: joining mcast group", port->conf->name);
-	rc = my_net_mcast_join(MY_SOURCE(port)->fd, MY_SOURCE(port)->sa_local, MY_SOURCE(port)->sa_group);
-	if (rc < 0) {
-		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_mcast_join;
-	}
-
 	MY_DEBUG("core/%s: setting socket receive buffer to %d", port->conf->name, 65535);
 	rc = my_sock_set_recv_buffer_size(MY_SOURCE(port)->fd, 65535);
 	if (rc < 0) {
@@ -219,14 +212,21 @@ static int my_source_udp_open(my_port_t *port)
 		goto _MY_ERR_set_reuseaddr;
 	}
 
+	MY_DEBUG("core/%s: joining mcast group", port->conf->name);
+	rc = my_net_mcast_join(MY_SOURCE(port)->fd, MY_SOURCE(port)->sa_local, MY_SOURCE(port)->sa_group);
+	if (rc < 0) {
+		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
+		goto _MY_ERR_mcast_join;
+	}
+
 	my_core_event_handler_add(port->core, MY_SOURCE(port)->fd, my_source_udp_event_handler, port);
 
 	return 0;
 
+_MY_ERR_mcast_join:
 _MY_ERR_set_reuseaddr:
 _MY_ERR_set_nonblock:
 _MY_ERR_set_recv_buffer_size:
-_MY_ERR_mcast_join:
 _MY_ERR_sock_bind:
 _MY_ERR_sock_create:
 	return -1;
@@ -241,7 +241,7 @@ static int my_source_udp_close(my_port_t *port)
 	MY_DEBUG("core/%s: leaving mcast group", port->conf->name);
 	rc = my_net_mcast_leave(MY_SOURCE(port)->fd, MY_SOURCE(port)->sa_local, MY_SOURCE(port)->sa_group);
 	if (rc < 0) {
-		my_log(MY_LOG_ERROR, "core/%s: error joining mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
+		my_log(MY_LOG_ERROR, "core/%s: error leaving mcast group (%d: %s)", port->conf->name, errno, strerror(errno));
 		goto _MY_ERR_mcast_leave;
 	}
 

@@ -6,7 +6,8 @@ noinst_LTLIBRARIES = libtargets.la
 
 libtargets_la_SOURCES = \
 	all.c \
-	file.c
+	file.c \
+	udp.c
 
 if HAVE_OSS
   libtargets_la_SOURCES += oss.c

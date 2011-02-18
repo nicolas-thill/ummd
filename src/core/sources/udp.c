@@ -125,6 +125,10 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 
 	prop = my_prop_lookup(conf->properties, "audio-format");
 	MY_SOURCE(port)->codec = my_audio_codec_create(prop);
+	if (!MY_SOURCE(port)->codec) {
+		my_log(MY_LOG_ERROR, "core/%s: error creating audio codec '%s'", port->conf->name, prop ? prop : "(null)");
+		goto _MY_ERR_audio_codec_create;
+	}
 
 	sa_len = sizeof(struct sockaddr_in);
 
@@ -149,11 +153,13 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 
 	return port;
 
-_MY_ERR_conf:
 	my_mem_free(MY_SOURCE(port)->sa_group);
 _MY_ERR_alloc_sa_group:
 	my_mem_free(MY_SOURCE(port)->sa_local);
 _MY_ERR_alloc_sa_local:
+	my_audio_codec_destroy(MY_SOURCE(port)->codec);
+_MY_ERR_audio_codec_create:
+_MY_ERR_conf:
 	my_port_destroy_priv(port);
 _MY_ERR_create_priv:
 	return NULL;

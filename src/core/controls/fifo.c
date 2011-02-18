@@ -54,7 +54,7 @@ static int my_control_fifo_event_handler(int fd, void *p)
 	char buf[MY_CONTROL_BUF_SIZE + 1];
 	int n;
 
-	n = read(fd, buf, MY_CONTROL_BUF_SIZE);
+	n = my_port_get(port, buf, MY_CONTROL_BUF_SIZE);
 	if (n < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error reading from fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
 		goto _MY_ERR_port_get;
@@ -64,10 +64,12 @@ static int my_control_fifo_event_handler(int fd, void *p)
 	if (n > 0) {
 		if (buf[n - 1] == '\n') {
 			buf[n - 1] = '\0';
+			n--;
 		}
 		my_log(MY_LOG_DEBUG, "core/%s: received '%s' from fifo '%s'", port->conf->name, buf, MY_CONTROL(port)->path);
-		my_core_handle_command(port->core, buf);
+		my_core_handle_command(port->core, buf, n);
 	}
+
 	return 0;
 
 _MY_ERR_port_get:
@@ -146,6 +148,29 @@ static int my_control_fifo_close(my_port_t *port)
 	return 0;
 }
 
+static int my_control_fifo_get(my_port_t *port, void *buf, int len)
+{
+	int n;
+
+	n = read(MY_CONTROL(port)->fd, buf, len);
+	if (n < 0) {
+		if ((errno == EWOULDBLOCK) || (errno == EINTR)) {
+			return 0;
+		} else {
+			my_log(MY_LOG_ERROR, "core/%s: error reading from fifo '%s' (%d: %s)", port->conf->name, MY_CONTROL(port)->path, errno, strerror(errno));
+			goto _MY_ERR_read;
+		}
+	}
+
+	MY_DEBUG("core/%s: read %d bytes from fifo '%s'", port->conf->name, n, MY_CONTROL(port)->path);
+
+	return n;
+
+_MY_ERR_read:
+	return -1;
+}
+
+
 my_port_impl_t my_control_fifo = {
 	.name = "fifo",
 	.desc = "FIFO (named pipe) control interface",
@@ -153,4 +178,5 @@ my_port_impl_t my_control_fifo = {
 	.destroy = my_control_fifo_destroy,
 	.open = my_control_fifo_open,
 	.close = my_control_fifo_close,
+	.get = my_control_fifo_get,
 };

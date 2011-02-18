@@ -56,7 +56,7 @@ typedef int (*my_event_handler_t)(int fd, void *p);
 extern int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handler, void *p);
 extern int my_core_event_handler_del(my_core_t *core, int fd);
 
-extern int my_core_handle_command(my_core_t *core, char *command);
+extern int my_core_handle_command(my_core_t *core, void *buf, int len);
 
 #ifdef MY_DEBUGGING
 extern void my_core_dump(my_core_t *core);

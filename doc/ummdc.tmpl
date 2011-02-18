@@ -25,6 +25,8 @@
 ME=${0##*/}
 MY_VERSION="$VERSION"
 
+MY_PROTO="UMMD/$MY_VERSION"
+
 MY_FIFO="$MY_RUN_DIR/ummd.fifo"
 
 my_usage() {
@@ -89,7 +91,7 @@ my_cmd_quit() {
 }
 
 my_cmd_send() {
-	echo "$@" >$MY_FIFO
+	echo "$MY_PROTO $@" >$MY_FIFO
 }
 
 my_cmd_error() {
@@ -101,7 +103,7 @@ _END_OF_ERROR_
 while read -p '> ' cmd; do
 	case $cmd in
 	  /quit)
-		my_cmd_send $cmd
+		my_cmd_send 'QUIT'
 		my_cmd_quit
 		;;
 	  help)

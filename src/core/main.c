@@ -347,13 +347,25 @@ err:
 	return -1;
 }
 
-int my_core_handle_command(my_core_t *core, char *command)
+static char my_proto[] = "UMMD/" VERSION;
+
+int my_core_handle_command(my_core_t *core, void *buf, int len)
 {
-	if (strcmp(command, "/quit") == 0) {
-		my_log(MY_LOG_NOTICE, "core: received '%s' command", command);
+	char *p = buf;
+	int n;
+
+	n = strlen(my_proto);
+	if (strncmp(p, my_proto, n) != 0) {
+		my_log(MY_LOG_NOTICE, "core: unknown command signature");
+	}
+
+	p += n + 1;
+
+	if (strcmp(p, "QUIT") == 0) {
+		MY_DEBUG("core: received '%s' command", p);
 		my_core_exit(core);
 	} else {
-		my_log(MY_LOG_ERROR, "core: unknown command '%s'", command);
+		my_log(MY_LOG_ERROR, "core: unknown command '%s'", p);
 	}
 }
 

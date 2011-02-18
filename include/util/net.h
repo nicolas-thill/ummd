@@ -29,7 +29,10 @@ extern int my_net_addr_get(int fd, char *if_name, struct sockaddr *sa);
 
 extern int my_net_addr_is_multicast(struct sockaddr *sa);
 
-extern int my_net_mcast_set_ttl(int fd, int ttl, struct sockaddr *sa);
+
+extern int my_net_mcast_set_interface(int fd, struct sockaddr *sa);
+extern int my_net_mcast_set_loopback(int fd, struct sockaddr *sa, int loop);
+extern int my_net_mcast_set_ttl(int fd, struct sockaddr *sa, int ttl);
 
 extern int my_net_mcast_join(int fd, struct sockaddr *sa, struct sockaddr *sa_group);
 extern int my_net_mcast_leave(int fd, struct sockaddr *sa, struct sockaddr *sa_group);

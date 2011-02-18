@@ -86,24 +86,48 @@ int my_net_addr_is_multicast(struct sockaddr *sa)
 }
 
 
-static int my_net_mcast_set_ttl_4(int fd, int ttl)
-{
-	return setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
-}
-
-static int my_net_mcast_set_ttl_6(int fd, int ttl)
-{
-	return setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &ttl, sizeof(ttl));
-}
-
-int my_net_mcast_set_ttl(int fd, int ttl, struct sockaddr *sa)
+int my_net_mcast_set_interface(int fd, struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET) {
-		return my_net_mcast_set_ttl_4(fd, ttl);
+		return setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, &(((struct sockaddr_in *)sa)->sin_addr), sizeof(struct in_addr));
 	}
 #if HAVE_IPV6
 	else if (sa->sa_family == AF_INET6) {
-		return my_net_mcast_set_ttl_6(fd, ttl);
+		return setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &(((struct sockaddr_in6 *)sa)->sin6_addr), sizeof(struct in6_addr));
+	}
+#endif
+
+	return -1;
+}
+
+
+int my_net_mcast_set_loopback(int fd, struct sockaddr *sa, int loop)
+{
+	u_int8_t op = loop;
+
+	if (sa->sa_family == AF_INET) {
+		return setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &op, sizeof(op));
+	}
+#if HAVE_IPV6
+	else if (sa->sa_family == AF_INET6) {
+		return setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &op, sizeof(op));
+	}
+#endif
+
+	return -1;
+}
+
+
+int my_net_mcast_set_ttl(int fd, struct sockaddr *sa, int ttl)
+{
+	u_int8_t op = ttl;
+
+	if (sa->sa_family == AF_INET) {
+		return setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &op, sizeof(op));
+	}
+#if HAVE_IPV6
+	else if (sa->sa_family == AF_INET6) {
+		return setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &op, sizeof(op));
 	}
 #endif
 

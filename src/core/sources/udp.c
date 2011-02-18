@@ -44,6 +44,7 @@ struct my_source_priv_s {
 	char *ip_addr;
 	int ip_port;
 	int fd;
+	int sa_len;
 	struct sockaddr *sa_local;
 	struct sockaddr *sa_group;
 	my_audio_codec_t *codec;
@@ -96,7 +97,6 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 	my_port_t *port;
 	char *prop;
 	struct in_addr ia;
-	int sa_len;
 	int ret;
 
 	port = my_port_create_priv(MY_SOURCE_SIZE);
@@ -130,19 +130,19 @@ static my_port_t *my_source_udp_create(my_core_t *core, my_port_conf_t *conf)
 		goto _MY_ERR_audio_codec_create;
 	}
 
-	sa_len = sizeof(struct sockaddr_in);
+	MY_SOURCE(port)->sa_len = sizeof(struct sockaddr_in);
 
-	MY_SOURCE(port)->sa_local = my_mem_alloc(sa_len);
+	MY_SOURCE(port)->sa_local = my_mem_alloc(MY_SOURCE(port)->sa_len);
 	if (!MY_SOURCE(port)->sa_local) {
 		goto _MY_ERR_alloc_sa_local;
 	}
-	my_mem_zero(MY_SOURCE(port)->sa_local, sa_len);
+	my_mem_zero(MY_SOURCE(port)->sa_local, MY_SOURCE(port)->sa_len);
 
-	MY_SOURCE(port)->sa_group = my_mem_alloc(sa_len);
+	MY_SOURCE(port)->sa_group = my_mem_alloc(MY_SOURCE(port)->sa_len);
 	if (!MY_SOURCE(port)->sa_group) {
 		goto _MY_ERR_alloc_sa_group;
 	}
-	my_mem_zero(MY_SOURCE(port)->sa_group, sa_len);
+	my_mem_zero(MY_SOURCE(port)->sa_group, MY_SOURCE(port)->sa_len);
 
 	((struct sockaddr_in *)MY_SOURCE(port)->sa_local)->sin_family = AF_INET;
 	((struct sockaddr_in *)MY_SOURCE(port)->sa_local)->sin_addr.s_addr = htonl(INADDR_ANY);

@@ -43,7 +43,9 @@ extern int my_sock_close(int fd);
 
 extern int my_sock_bind(int fd, struct sockaddr *sa);
 
-extern int my_sock_set_recv_buffer_size(int fd, int size);
+extern int my_sock_set_rcv_buffer_size(int fd, int size);
+extern int my_sock_set_snd_buffer_size(int fd, int size);
+
 extern int my_sock_set_nonblock(int fd);
 extern int my_sock_set_reuseaddr(int fd);
 

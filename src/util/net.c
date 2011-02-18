@@ -214,12 +214,21 @@ int my_sock_bind(int fd, struct sockaddr *sa)
 	return bind(fd, sa, sa_len);
 }
 
-int my_sock_set_recv_buffer_size(int fd, int size)
+
+int my_sock_set_rcv_buffer_size(int fd, int size)
 {
 	int so = size;
 
 	return setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &so, sizeof(so));
 }
+
+int my_sock_set_snd_buffer_size(int fd, int size)
+{
+	int so = size;
+
+	return setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &so, sizeof(so));
+}
+
 
 int my_sock_set_reuseaddr(int fd)
 {

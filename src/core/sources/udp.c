@@ -192,10 +192,10 @@ static int my_source_udp_open(my_port_t *port)
 	}
 
 	MY_DEBUG("core/%s: setting socket receive buffer to %d", port->conf->name, 65535);
-	rc = my_sock_set_recv_buffer_size(MY_SOURCE(port)->fd, 65535);
+	rc = my_sock_set_rcv_buffer_size(MY_SOURCE(port)->fd, 65535);
 	if (rc < 0) {
 		my_log(MY_LOG_ERROR, "core/%s: error setting socket receive buffer (%d: %s)", port->conf->name, errno, strerror(errno));
-		goto _MY_ERR_set_recv_buffer_size;
+		goto _MY_ERR_set_rcv_buffer_size;
 	}
 
 	MY_DEBUG("core/%s: putting socket in non-blocking mode", port->conf->name);
@@ -226,7 +226,7 @@ static int my_source_udp_open(my_port_t *port)
 _MY_ERR_mcast_join:
 _MY_ERR_set_reuseaddr:
 _MY_ERR_set_nonblock:
-_MY_ERR_set_recv_buffer_size:
+_MY_ERR_set_rcv_buffer_size:
 _MY_ERR_sock_bind:
 _MY_ERR_sock_create:
 	return -1;

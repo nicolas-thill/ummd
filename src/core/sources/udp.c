@@ -37,9 +37,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-typedef struct my_source_data_s my_source_data_t;
+typedef struct my_source_priv_s my_source_priv_t;
 
-struct my_source_data_s {
+struct my_source_priv_s {
 	my_dport_t _inherited;
 	char *ip_addr;
 	int ip_port;
@@ -49,8 +49,8 @@ struct my_source_data_s {
 	my_audio_codec_t *codec;
 };
 
-#define MY_SOURCE(p) ((my_source_data_t *)(p))
-#define MY_SOURCE_SIZE (sizeof(my_source_data_t))
+#define MY_SOURCE(p) ((my_source_priv_t *)(p))
+#define MY_SOURCE_SIZE (sizeof(my_source_priv_t))
 
 static int my_source_udp_event_handler(int fd, void *p)
 {

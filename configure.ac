@@ -66,6 +66,11 @@ AC_CHECK_LIB(
 	[MY_LIBS="$MY_LIBS -lpthread"]
 )
 
+PKG_CHECK_MODULES(LIBAVCODEC, libavcodec >= 52)
+PKG_CHECK_MODULES(LIBAVDEVICE, libavdevice >= 52)
+PKG_CHECK_MODULES(LIBAVFORMAT, libavformat >= 52)
+PKG_CHECK_MODULES(LIBAVUTIL, libavutil >= 49)
+
 PKG_CHECK_MODULES(LIBCONFIG, libconfig >= 1.0)
 
 PKG_CHECK_MODULES(LIBLO, liblo >= 0.26)
@@ -83,6 +88,7 @@ AC_CONFIG_FILES([
 	src/core/filters/Makefile
 	src/core/sources/Makefile
 	src/core/targets/Makefile
+	src/test/Makefile
 	src/util/Makefile
 ])
 

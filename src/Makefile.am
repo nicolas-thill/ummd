@@ -4,7 +4,7 @@
 #  Copyright (C) 2010 Nicolas Thill <nicolas.thill@gmail.com>
 #
 
-SUBDIRS = conf core util
+SUBDIRS = conf core util test
 
 bin_PROGRAMS = ummd
 

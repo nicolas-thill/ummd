@@ -64,6 +64,13 @@ src/core/targets/*.lo
 src/core/targets/*.o
 src/core/targets/Makefile
 src/core/targets/Makefile.in
+src/test/.deps/
+src/test/.libs/
+src/test/*.la
+src/test/*.lo
+src/test/*.o
+src/test/Makefile
+src/test/Makefile.in
 src/util/.deps/
 src/util/.libs/
 src/util/*.la

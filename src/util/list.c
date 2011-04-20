@@ -41,6 +41,28 @@ static void my_list_add_head(my_list_t *list, my_node_t *node)
 	}
 }
 
+void my_list_insert_before(my_list_t *list, my_node_t *node, void *data)
+{
+	my_node_t *new_node;
+
+	new_node = my_mem_alloc(sizeof(*new_node));
+	if (!new_node)
+		return;
+
+	new_node->data = data;
+
+	if (!node->prev) {
+		list->head = new_node;
+		new_node->prev = NULL;
+	} else {
+		new_node->prev = node->prev;
+		node->prev->next = new_node;
+	}
+
+	new_node->next = node;
+	node->prev = new_node;
+}
+
 static void my_list_add_tail(my_list_t *list, my_node_t *node)
 {
 	if (list->tail) {

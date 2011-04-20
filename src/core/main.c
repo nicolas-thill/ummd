@@ -25,12 +25,17 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <sys/times.h>
 
 #include "core.h"
 
 #include "util/log.h"
 #include "util/mem.h"
 #include "util/list.h"
+
+#define EVENT_LIST_RESOLUTION 250000	/* microseconds */
 
 typedef struct my_core_priv my_core_priv_t;
 
@@ -39,12 +44,22 @@ struct my_core_priv {
 	int running;
 	fd_set watching_fds;
 	int max_sock;
+	int64_t curr_time;
 	my_list_t *watched_fd_list;
+	my_list_t *alarm_list;
+	uint32_t system_tick;
 };
 
 struct watch_entry {
 	int fd;
 	my_event_handler_t callback_fn;
+	void *data;
+};
+
+struct alarm_entry {
+	uint64_t alarm_time;
+	uint64_t reoccurring;
+	my_alarm_handler_t callback_fn;
 	void *data;
 };
 
@@ -80,6 +95,54 @@ static void my_core_watched_fds_update(my_core_t *core)
 
 	core_priv->max_sock = tmp_max_sock;
 	memcpy(&core_priv->watching_fds, &tmp_watched_fds, sizeof(fd_set));
+}
+
+/* Make times(2) behave rationally on Linux */
+static clock_t my_core_times_wrapper(void)
+{
+	struct tms dummy_tms_struct;
+	int save_errno = errno;
+	clock_t ret;
+
+	/**
+	 * times(2) really returns an unsigned value ...
+	 *
+	 * We don't check to see if we got back the error value (-1), because
+	 * the only possibility for an error would be if the address of
+	 * dummy_tms_struct was invalid.  Since it's a
+	 * compiler-generated address, we assume that errors are impossible.
+	 * And, unfortunately, it is quite possible for the correct return
+	 * from times(2) to be exactly (clock_t)-1.  Sigh...
+	 *
+	 */
+	errno = 0;
+	ret = times(&dummy_tms_struct);
+
+	/**
+	 * This is to work around a bug in the system call interface
+	 * for times(2) found in glibc on Linux (and maybe elsewhere)
+	 * It changes the return values from -1 to -4096 all into
+	 * -1 and then dumps the -(return value) into errno.
+	 *
+	 * This totally bizarre behavior seems to be widespread in
+	 * versions of Linux and glibc.
+	 *
+	 * Many thanks to Wolfgang Dumhs <wolfgang.dumhs (at) gmx.at>
+	 * for finding and documenting this bizarre behavior.
+	 */
+	if (errno != 0) {
+		ret = (clock_t) (-errno);
+	}
+
+	errno = save_errno;
+	return ret;
+}
+
+static uint64_t my_core_get_time_msec(my_core_t *core)
+{
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+
+	return (my_core_times_wrapper() * 1000) / core_priv->system_tick;
 }
 
 my_core_t *my_core_create(void)
@@ -131,8 +194,16 @@ my_core_t *my_core_create(void)
 		goto _MY_ERR_create_watched_fds;
 	}
 
+	core_priv->alarm_list = my_list_create();
+	if (!core_priv->alarm_list) {
+		MY_ERROR("core: error creating alarm list (%s)" , strerror(errno));
+		goto _MY_ERR_create_alarm_list;
+	}
+
 	FD_ZERO(&core_priv->watching_fds);
 	core_priv->max_sock = 0;
+	core_priv->system_tick = sysconf(_SC_CLK_TCK);
+	core_priv->curr_time = my_core_get_time_msec(core);
 
 	my_audio_codec_init();
 
@@ -144,6 +215,8 @@ my_core_t *my_core_create(void)
 
 	return core;
 
+	my_list_destroy(core_priv->alarm_list);
+_MY_ERR_create_alarm_list:
 	my_list_destroy(core_priv->watched_fd_list);
 _MY_ERR_create_watched_fds:
 	my_list_destroy(core->wirings);
@@ -184,6 +257,8 @@ void my_core_destroy(my_core_t *core)
 	my_list_destroy(core->wirings);
 
 	my_list_destroy(core_priv->watched_fd_list);
+	my_list_purge(core_priv->alarm_list, MY_LIST_PURGE_FLAG_FREE_DATA);
+	my_list_destroy(core_priv->alarm_list);
 	my_mem_free(core);
 }
 
@@ -242,6 +317,84 @@ _MY_ERR_create_controls:
 	return -1;
 }
 
+static void my_core_alarm_add_at_pos(my_core_t *core, struct alarm_entry *alarm_entry)
+{
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+	struct alarm_entry *alarm_entry_tmp;
+	my_node_t *node;
+
+	my_list_for_each(core_priv->alarm_list, node, alarm_entry_tmp) {
+
+		if ((int64_t)(alarm_entry_tmp->alarm_time - alarm_entry->alarm_time) > 0)
+			continue;
+
+		my_list_insert_before(core_priv->alarm_list, node, alarm_entry);
+		return;
+	}
+
+	my_list_enqueue(core_priv->alarm_list, alarm_entry);
+}
+
+static void my_core_alarm_list_add_reoccurring(my_core_t *core, struct alarm_entry *alarm_entry)
+{
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+
+	alarm_entry->alarm_time = core_priv->curr_time + alarm_entry->reoccurring;
+	my_core_alarm_add_at_pos(core, alarm_entry);
+}
+
+int my_core_alarm_add(my_core_t *core, unsigned int timeout,
+		      int reoccurring, my_alarm_handler_t handler, void *p)
+{
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+	struct alarm_entry *alarm_entry;
+
+	alarm_entry = my_mem_alloc(sizeof(struct alarm_entry));
+	if (!alarm_entry) {
+		my_log(MY_LOG_ERROR, "core: error creating alarm entry (%s)" , strerror(errno));
+		goto err;
+	}
+
+	alarm_entry->alarm_time = my_core_get_time_msec(core) + timeout;
+	alarm_entry->callback_fn = handler;
+	alarm_entry->data = p;
+
+	if (reoccurring)
+		alarm_entry->reoccurring = timeout;
+	else
+		alarm_entry->reoccurring = 0;
+
+	my_core_alarm_add_at_pos(core, alarm_entry);
+
+out:
+	return 0;
+
+err:
+	return -1;
+}
+
+static void my_core_alarm_list_maintain(my_core_t *core)
+{
+	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
+	struct alarm_entry *alarm_entry;
+	my_node_t *node;
+
+	my_list_for_each(core_priv->alarm_list, node, alarm_entry) {
+
+		if ((int)(alarm_entry->alarm_time - core_priv->curr_time) > 0)
+			break;
+
+		(alarm_entry->callback_fn)(alarm_entry->data);
+
+		my_list_remove(core_priv->alarm_list, node);
+
+		if (alarm_entry->reoccurring)
+			my_core_alarm_list_add_reoccurring(core, alarm_entry);
+		else
+			my_mem_free(alarm_entry);
+	}
+}
+
 void my_core_loop(my_core_t *core)
 {
 	my_core_priv_t *core_priv = MY_CORE_PRIV(core);
@@ -249,28 +402,28 @@ void my_core_loop(my_core_t *core)
 	struct watch_entry *watch_entry;
 	fd_set tmp_watched_fds;
 	struct timeval tv;
-	int ret, timeout = 1000;
+	int ret;
 
 	core_priv->running = 1;
+	tv.tv_sec = 0;
+	tv.tv_usec = EVENT_LIST_RESOLUTION;
 
 	while (core_priv->running) {
 
 		memcpy(&tmp_watched_fds, &core_priv->watching_fds, sizeof(fd_set));
-		tv.tv_sec = timeout / 1000;
-		tv.tv_usec = (timeout % 1000) * 1000;
 
 		ret = select(core_priv->max_sock + 1, &tmp_watched_fds, NULL, NULL, &tv);
 
-		/* timeout occurred */
-		if (ret == 0)
-			continue;
+		core_priv->curr_time = my_core_get_time_msec(core);
+		my_core_alarm_list_maintain(core);
 
 		if (ret < 0) {
 			if (errno != EINTR)
 				my_log(MY_LOG_ERROR, "core: select error '%s'", strerror(errno));
-
-			continue;
 		}
+
+		if (ret <= 0)
+			goto reset_sleep;
 
 		my_list_for_each(core_priv->watched_fd_list, node, watch_entry) {
 
@@ -279,6 +432,12 @@ void my_core_loop(my_core_t *core)
 
 			(watch_entry->callback_fn)(watch_entry->fd, watch_entry->data);
 		}
+
+		continue;
+
+reset_sleep:
+		tv.tv_sec = 0;
+		tv.tv_usec = EVENT_LIST_RESOLUTION;
 	}
 }
 
@@ -304,7 +463,7 @@ int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handle
 
 	watch_entry = my_mem_alloc(sizeof(struct watch_entry));
 	if (!watch_entry) {
-		my_log(MY_LOG_ERROR, "core: error creating register data (%s)" , strerror(errno));
+		my_log(MY_LOG_ERROR, "core: error creating event handler (%s)" , strerror(errno));
 		goto err;
 	}
 

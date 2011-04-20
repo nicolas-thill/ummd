@@ -51,6 +51,8 @@ extern void *my_list_dequeue(my_list_t *list);
 extern int my_list_enqueue(my_list_t *list, void *data);
 extern void my_list_remove(my_list_t *list, my_node_t *node);
 
+extern void my_list_insert_before(my_list_t *list, my_node_t *node, void *data);
+
 #define MY_LIST_PURGE_FLAG_FREE_DATA  0x0001
 
 extern void my_list_purge(my_list_t *list, int flags);

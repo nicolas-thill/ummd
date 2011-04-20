@@ -52,7 +52,10 @@ extern void my_core_loop(my_core_t *core);
 extern void my_core_stop(my_core_t *core);
 
 typedef int (*my_event_handler_t)(int fd, void *p);
+typedef int (*my_alarm_handler_t)(void *p);
 
+extern int my_core_alarm_add(my_core_t *core, unsigned int timeout,
+			     int reoccurring, my_alarm_handler_t handler, void *p);
 extern int my_core_event_handler_add(my_core_t *core, int fd, my_event_handler_t handler, void *p);
 extern int my_core_event_handler_del(my_core_t *core, int fd);
 

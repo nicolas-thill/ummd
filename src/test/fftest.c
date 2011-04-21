@@ -46,8 +46,10 @@ static char *me;
 static my_demuxer_t demuxer;
 static int source_fd, target_fd;
 
+char source_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+char target_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
 
-static int my_io_read(void *opaque, uint8_t *buf, int buf_size)
+static int my_source_read(void *opaque, uint8_t *buf, int buf_size)
 {
 	my_demuxer_t *d = opaque;
 
@@ -58,7 +60,7 @@ static int my_io_read(void *opaque, uint8_t *buf, int buf_size)
 	return n;
 }
 
-static int64_t my_io_seek(void *opaque, int64_t offset, int whence)
+static int64_t my_source_seek(void *opaque, int64_t offset, int whence)
 {
 	my_demuxer_t *d = opaque;
 
@@ -80,29 +82,28 @@ static int64_t my_io_seek(void *opaque, int64_t offset, int whence)
 	return d->pos;
 }
 
-static int my_loop(void)
+static int my_source_open(char *name)
 {
-	char dbuf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
-	char ibuf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
-	int ilen;
-	char obuf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
-	int olen;
 	AVCodec *av_dec;
-	AVProbeData av_pd;
-	AVInputFormat *av_if;
 	AVFormatParameters av_fp;
-	AVPacket av_pk;
-	int rc;
-	int i, audio_stream_index;
+	AVInputFormat *av_if;
+	AVProbeData av_pd;
+	int audio_stream_index;
+	int i, rc;
 
-	av_register_all();
+	my_log(MY_LOG_NOTICE, "opening '%s' for reading", name);
+	source_fd = open(name, O_RDONLY);
+	if (source_fd == -1) {
+		my_log(MY_LOG_ERROR, "error opening '%s' for reading", name);
+		goto _MY_ERR_open;
+	}
 
-	bzero(ibuf, sizeof(ibuf));
+	bzero(source_buf, sizeof(source_buf));
 
-	read(source_fd, ibuf, sizeof(ibuf));
+	rc = read(source_fd, source_buf, sizeof(source_buf));
 
-	av_pd.buf = ibuf;
-	av_pd.buf_size = sizeof(ibuf);
+	av_pd.buf = source_buf;
+	av_pd.buf_size = sizeof(source_buf);
 	av_pd.filename = NULL;
 
 	my_log(MY_LOG_NOTICE, "probing input format");
@@ -122,11 +123,11 @@ static int my_loop(void)
 
 	lseek(source_fd, 0, SEEK_SET);
 
-	demuxer.io_buffer = ibuf;
-	demuxer.io_buffer_size = sizeof(ibuf);
+	demuxer.io_buffer = source_buf;
+	demuxer.io_buffer_size = sizeof(source_buf);
 
 	my_log(MY_LOG_NOTICE, "creating I/O buffer");
-	demuxer.ff_io = av_alloc_put_byte(demuxer.io_buffer, demuxer.io_buffer_size, 0, &demuxer, my_io_read, NULL, my_io_seek);
+	demuxer.ff_io = av_alloc_put_byte(demuxer.io_buffer, demuxer.io_buffer_size, 0, &demuxer, my_source_read, NULL, my_source_seek);
 	if (demuxer.ff_io == NULL) {
 		my_log(MY_LOG_ERROR, "creating I/O buffer");
 		goto _MY_ERR_av_alloc_put_byte;
@@ -173,6 +174,37 @@ static int my_loop(void)
 
 	my_log(MY_LOG_NOTICE, "audio stream found, codec: %s, channels: %d, sample-rate: %d Hz", av_dec->name, demuxer.ff_cc->channels, demuxer.ff_cc->sample_rate);
 
+	my_log(MY_LOG_NOTICE, "opening audio codec");
+	if (avcodec_open(demuxer.ff_cc, av_dec) < 0) {
+		my_log(MY_LOG_ERROR, "opening audio codec");
+		goto _MY_ERR_avcodec_open;
+	}
+
+	return 0;
+
+_MY_ERR_avcodec_open:
+_MY_ERR_avcodec_find_decoder:
+_MY_ERR_finding_audio_stream:
+_MY_ERR_av_find_stream_info:
+_MY_ERR_av_open_input_stream:
+_MY_ERR_av_alloc_put_byte:
+_MY_ERR_av_probe_input_format:
+_MY_ERR_open:
+	return -1;
+}
+
+
+static int my_target_open(char *name)
+{
+	int i, rc;
+
+	my_log(MY_LOG_NOTICE, "opening '%s' for writing", name);
+	target_fd = open(name, O_WRONLY);
+	if (target_fd == -1) {
+		my_log(MY_LOG_ERROR, "error opening '%s' for writing", name);
+		goto _MY_ERR_open;
+	}
+
 	i = demuxer.ff_cc->channels;
 	rc = ioctl(target_fd, SNDCTL_DSP_CHANNELS, &i);
 	if (rc == -1) {
@@ -191,29 +223,38 @@ static int my_loop(void)
 		my_log(MY_LOG_ERROR, "setting audio format for output device (%d: %s)", errno, strerror(errno));
 	}
 
-	my_log(MY_LOG_NOTICE, "opening audio codec");
-	if (avcodec_open(demuxer.ff_cc, av_dec) < 0) {
-		my_log(MY_LOG_ERROR, "opening audio codec");
-		goto _MY_ERR_avcodec_open;
-	}
+	return 0;
+
+_MY_ERR_open:
+	return -1;
+}
+
+static int my_loop(void)
+{
+	int ilen;
+	int olen;
+	AVPacket av_pk;
+	int rc;
+	int i, audio_stream_index;
+
 
 	my_log(MY_LOG_NOTICE, "reading audio frames");
 
-	int osize;
-	int isize;
+	int target_size;
+	int source_size;
 	
 	while (av_read_frame(demuxer.ff_fc, &av_pk) >= 0) {
 		if (av_pk.stream_index == audio_stream_index) {
 			my_log(MY_LOG_NOTICE, "read an audio frame, pts: %lld, dts: %lld, size: %d, duration: %d, pos: %lld", av_pk.pts, av_pk.dts, av_pk.size, av_pk.duration, av_pk.pos);
-			osize = sizeof(obuf);
-			isize = avcodec_decode_audio2(demuxer.ff_cc, (int16_t *)obuf, &osize, av_pk.data, av_pk.size);
+			target_size = sizeof(target_buf);
+			source_size = avcodec_decode_audio2(demuxer.ff_cc, (int16_t *)target_buf, &target_size, av_pk.data, av_pk.size);
 			av_free_packet(&av_pk);
-			if (isize < 0) {
+			if (source_size < 0) {
 				my_log(MY_LOG_ERROR, "decoding audio frame");
 				goto _MY_ERR_avcodec_decode_audio2;
 			}
-			my_log(MY_LOG_NOTICE, "decoded an audio frame, isize: %d, osize: %d", isize, osize);
-			i = write(target_fd, obuf, osize);
+			my_log(MY_LOG_NOTICE, "decoded an audio frame, source_size: %d, target_size: %d", source_size	, target_size);
+			i = write(target_fd, target_buf, target_size);
 		}
 	}
 out:
@@ -221,13 +262,6 @@ out:
 	return 0;
 
 _MY_ERR_avcodec_decode_audio2:
-_MY_ERR_avcodec_open:
-_MY_ERR_avcodec_find_decoder:
-_MY_ERR_finding_audio_stream:
-_MY_ERR_av_find_stream_info:
-_MY_ERR_av_open_input_stream:
-_MY_ERR_av_alloc_put_byte:
-_MY_ERR_av_probe_input_format:
 	return -1;
 }
 
@@ -242,6 +276,8 @@ int main(int argc, char **argv)
 
 	my_log_init(me);
 
+	av_register_all();
+
 	if (my_log_open("stderr", MY_LOG_DEBUG) != 0) {
 		goto _MY_ERR_log_open;
 	}
@@ -251,17 +287,11 @@ int main(int argc, char **argv)
 		goto _MY_ERR_argc;
 	}
 
-	my_log(MY_LOG_NOTICE, "opening '%s' for reading", argv[1]);
-	source_fd = open(argv[1], O_RDONLY);
-	if (source_fd == -1) {
-		my_log(MY_LOG_ERROR, "error opening '%s' for reading", argv[1]);
+	if (my_source_open(argv[1]) < 0) {
 		goto _MY_ERR_open_source;
 	}
 
-	my_log(MY_LOG_NOTICE, "opening '%s' for writing", argv[2]);
-	target_fd = open(argv[2], O_WRONLY);
-	if (target_fd == -1) {
-		my_log(MY_LOG_ERROR, "error opening '%s' for writing", argv[2]);
+	if (my_target_open(argv[2]) < 0) {
 		goto _MY_ERR_open_target;
 	}
 

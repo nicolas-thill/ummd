@@ -29,8 +29,8 @@
 #include <linux/soundcard.h>
 
 
-typedef struct my_demuxer_s my_demuxer_t;
-struct my_demuxer_s
+typedef struct my_dec_s my_dec_t;
+struct my_dec_s
 {
 	uint8_t *io_buffer;
 	int io_buffer_size;
@@ -41,17 +41,32 @@ struct my_demuxer_s
 	int64_t pos;
 };
 
+typedef struct my_enc_s my_enc_t;
+struct my_enc_s
+{
+	uint8_t *io_buffer;
+	int io_buffer_size;
+	ByteIOContext *ff_io;
+	AVOutputFormat  *ff_of;
+	AVFormatContext *ff_fc;
+	AVCodecContext *ff_cc;
+	int64_t pos;
+};
+
 
 static char *me;
-static my_demuxer_t demuxer;
+static my_dec_t my_dec;
+static my_enc_t my_enc;
 static int source_fd, target_fd;
 
 char source_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
 char target_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
 
+int source_stream_index;
+
 static int my_source_read(void *opaque, uint8_t *buf, int buf_size)
 {
-	my_demuxer_t *d = opaque;
+	my_dec_t *d = opaque;
 
 	int n;
 	my_log(MY_LOG_NOTICE, "my_io_read(..., ..., %d) called", buf_size);
@@ -62,7 +77,7 @@ static int my_source_read(void *opaque, uint8_t *buf, int buf_size)
 
 static int64_t my_source_seek(void *opaque, int64_t offset, int whence)
 {
-	my_demuxer_t *d = opaque;
+	my_dec_t *d = opaque;
 
 	my_log(MY_LOG_NOTICE, "my_io_seek(..., %lld, %d) called", offset, whence);
 	if (whence == AVSEEK_SIZE) {
@@ -88,7 +103,6 @@ static int my_source_open(char *name)
 	AVFormatParameters av_fp;
 	AVInputFormat *av_if;
 	AVProbeData av_pd;
-	int audio_stream_index;
 	int i, rc;
 
 	my_log(MY_LOG_NOTICE, "opening '%s' for reading", name);
@@ -117,65 +131,65 @@ static int my_source_open(char *name)
 		my_log(MY_LOG_ERROR, "probing input format");
 		goto _MY_ERR_av_probe_input_format;
 	}
-	demuxer.ff_if = av_if;
+	my_dec.ff_if = av_if;
 
 	my_log(MY_LOG_NOTICE, "input format found: %s", av_if->name);
 
 	lseek(source_fd, 0, SEEK_SET);
 
-	demuxer.io_buffer = source_buf;
-	demuxer.io_buffer_size = sizeof(source_buf);
+	my_dec.io_buffer = source_buf;
+	my_dec.io_buffer_size = sizeof(source_buf);
 
 	my_log(MY_LOG_NOTICE, "creating I/O buffer");
-	demuxer.ff_io = av_alloc_put_byte(demuxer.io_buffer, demuxer.io_buffer_size, 0, &demuxer, my_source_read, NULL, my_source_seek);
-	if (demuxer.ff_io == NULL) {
+	my_dec.ff_io = av_alloc_put_byte(my_dec.io_buffer, my_dec.io_buffer_size, 0, &my_dec, my_source_read, NULL, my_source_seek);
+	if (my_dec.ff_io == NULL) {
 		my_log(MY_LOG_ERROR, "creating I/O buffer");
 		goto _MY_ERR_av_alloc_put_byte;
 	}
 
-	demuxer.ff_io->is_streamed = 1;
-	demuxer.pos = 0;
+	my_dec.ff_io->is_streamed = 1;
+	my_dec.pos = 0;
 
 	my_log(MY_LOG_NOTICE, "opening input stream");
-	rc = av_open_input_stream(&(demuxer.ff_fc), demuxer.ff_io, "", demuxer.ff_if, &av_fp);
+	rc = av_open_input_stream(&(my_dec.ff_fc), my_dec.ff_io, "", my_dec.ff_if, &av_fp);
 	if( rc < 0 ) {
 		my_log(MY_LOG_ERROR, "opening input stream");
 		goto _MY_ERR_av_open_input_stream;
 	}
 
 	my_log(MY_LOG_NOTICE, "finding stream info");
-	rc = av_find_stream_info(demuxer.ff_fc);
+	rc = av_find_stream_info(my_dec.ff_fc);
 	if( rc < 0 ) {
 		my_log(MY_LOG_ERROR, "finding stream info");
 		goto _MY_ERR_av_find_stream_info;
 	}
 
 	my_log(MY_LOG_NOTICE, "finding audio stream");
-	audio_stream_index = -1;
-	for (i = 0; i < demuxer.ff_fc->nb_streams; i++) {
-		if (demuxer.ff_fc->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO && audio_stream_index < 0) {
-			audio_stream_index = i;
+	source_stream_index = -1;
+	for (i = 0; i < my_dec.ff_fc->nb_streams; i++) {
+		if (my_dec.ff_fc->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO && source_stream_index < 0) {
+			source_stream_index = i;
 			break;
 		}
 	}
-	if (audio_stream_index < 0) {
+	if (source_stream_index < 0) {
 		my_log(MY_LOG_ERROR, "finding audio stream");
 		goto _MY_ERR_finding_audio_stream;
 	}
 
-	demuxer.ff_cc = demuxer.ff_fc->streams[audio_stream_index]->codec;
+	my_dec.ff_cc = my_dec.ff_fc->streams[source_stream_index]->codec;
 
 	my_log(MY_LOG_NOTICE, "finding audio codec");
-	av_dec = avcodec_find_decoder(demuxer.ff_cc->codec_id);
+	av_dec = avcodec_find_decoder(my_dec.ff_cc->codec_id);
 	if (!av_dec) {
 		my_log(MY_LOG_NOTICE, "finding audio codec");
 		goto _MY_ERR_avcodec_find_decoder;
 	}
 
-	my_log(MY_LOG_NOTICE, "audio stream found, codec: %s, channels: %d, sample-rate: %d Hz", av_dec->name, demuxer.ff_cc->channels, demuxer.ff_cc->sample_rate);
+	my_log(MY_LOG_NOTICE, "audio stream found, codec: %s, channels: %d, sample-rate: %d Hz", av_dec->name, my_dec.ff_cc->channels, my_dec.ff_cc->sample_rate);
 
 	my_log(MY_LOG_NOTICE, "opening audio codec");
-	if (avcodec_open(demuxer.ff_cc, av_dec) < 0) {
+	if (avcodec_open(my_dec.ff_cc, av_dec) < 0) {
 		my_log(MY_LOG_ERROR, "opening audio codec");
 		goto _MY_ERR_avcodec_open;
 	}
@@ -196,6 +210,8 @@ _MY_ERR_open:
 
 static int my_target_open(char *name)
 {
+	AVOutputFormat *av_of;
+	AVFormatContext *av_fc;
 	int i, rc;
 
 	my_log(MY_LOG_NOTICE, "opening '%s' for writing", name);
@@ -205,13 +221,13 @@ static int my_target_open(char *name)
 		goto _MY_ERR_open;
 	}
 
-	i = demuxer.ff_cc->channels;
+	i = my_dec.ff_cc->channels;
 	rc = ioctl(target_fd, SNDCTL_DSP_CHANNELS, &i);
 	if (rc == -1) {
 		my_log(MY_LOG_ERROR, "setting channels for output device (%d: %s)", errno, strerror(errno));
 	}
 
-	i = demuxer.ff_cc->sample_rate;
+	i = my_dec.ff_cc->sample_rate;
 	rc = ioctl(target_fd, SNDCTL_DSP_SPEED, &i);
 	if (rc == -1) {
 		my_log(MY_LOG_ERROR, "setting sample rate for output device (%d: %s)", errno, strerror(errno));
@@ -231,11 +247,8 @@ _MY_ERR_open:
 
 static int my_loop(void)
 {
-	int ilen;
-	int olen;
 	AVPacket av_pk;
-	int rc;
-	int i, audio_stream_index;
+	int i;
 
 
 	my_log(MY_LOG_NOTICE, "reading audio frames");
@@ -243,11 +256,11 @@ static int my_loop(void)
 	int target_size;
 	int source_size;
 	
-	while (av_read_frame(demuxer.ff_fc, &av_pk) >= 0) {
-		if (av_pk.stream_index == audio_stream_index) {
+	while (av_read_frame(my_dec.ff_fc, &av_pk) >= 0) {
+		if (av_pk.stream_index == source_stream_index) {
 			my_log(MY_LOG_NOTICE, "read an audio frame, pts: %lld, dts: %lld, size: %d, duration: %d, pos: %lld", av_pk.pts, av_pk.dts, av_pk.size, av_pk.duration, av_pk.pos);
 			target_size = sizeof(target_buf);
-			source_size = avcodec_decode_audio2(demuxer.ff_cc, (int16_t *)target_buf, &target_size, av_pk.data, av_pk.size);
+			source_size = avcodec_decode_audio2(my_dec.ff_cc, (int16_t *)target_buf, &target_size, av_pk.data, av_pk.size);
 			av_free_packet(&av_pk);
 			if (source_size < 0) {
 				my_log(MY_LOG_ERROR, "decoding audio frame");

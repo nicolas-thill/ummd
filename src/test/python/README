@@ -1,0 +1,24 @@
+ummc - Micro Multimedia Client
+
+This is the Management Tool to monitor and control UMMD nodes.
+
+Note : ummc
+
+= Dependancies
+
+To test it, you'll need the following :
+    - python 2.6
+    - twisted
+
+= How to use it =
+
+First, you need to launch the script ummd-node.py to emulate one or
+more UMMD nodes :
+    % ./ummd-node.py
+
+Finally, launch the script ummc.py :
+    % ./ummc.py
+
+The script ummc will send "Ping?" messages every 2 seconds on
+224.0.0.1 and every ummd-node will answer with a simple "Pong?".
+

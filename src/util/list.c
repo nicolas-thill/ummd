@@ -136,7 +136,27 @@ void *my_list_get(my_list_t *list, int n)
 	return NULL;
 }
 
-void *my_list_dequeue(my_list_t *list)
+int my_list_is_empty(my_list_t *list)
+{
+	return (list->head == NULL);
+}
+
+void *my_list_dequeue_head(my_list_t *list)
+{
+	my_node_t *node;
+	void *data;
+
+	node = my_list_remove_head(list);
+	if (node) {
+		data = node->data;
+		my_mem_free(node);
+		return data;
+	}
+
+	return NULL;
+}
+
+void *my_list_dequeue_tail(my_list_t *list)
 {
 	my_node_t *node;
 	void *data;
@@ -166,7 +186,21 @@ void my_list_remove(my_list_t *list, my_node_t *node)
 	my_mem_free(node);
 }
 
-int my_list_enqueue(my_list_t *list, void *data)
+int my_list_enqueue_head(my_list_t *list, void *data)
+{
+	my_node_t *node;
+
+	node = my_mem_alloc(sizeof(*node));
+	if (node) {
+		my_list_add_head(list, node);
+		node->data = data;
+		return 0;
+	}
+
+	return -1;
+}
+
+int my_list_enqueue_tail(my_list_t *list, void *data)
 {
 	my_node_t *node;
 

@@ -47,8 +47,16 @@ extern void my_list_destroy(my_list_t *list);
 extern void *my_list_get(my_list_t *list, int n);
 extern int my_list_iter(my_list_t *list, my_list_iter_fn_t func, void *user);
 
-extern void *my_list_dequeue(my_list_t *list);
-extern int my_list_enqueue(my_list_t *list, void *data);
+extern int my_list_is_empty(my_list_t *list);
+
+#define my_list_dequeue my_list_dequeue_head
+extern void *my_list_dequeue_head(my_list_t *list);
+extern void *my_list_dequeue_tail(my_list_t *list);
+
+#define my_list_enqueue my_list_enqueue_tail
+extern int my_list_enqueue_head(my_list_t *list, void *data);
+extern int my_list_enqueue_tail(my_list_t *list, void *data);
+
 extern void my_list_remove(my_list_t *list, my_node_t *node);
 
 extern void my_list_insert_before(my_list_t *list, my_node_t *node, void *data);

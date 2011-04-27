@@ -70,6 +70,7 @@ src/test/*.la
 src/test/*.lo
 src/test/*.o
 src/test/fftest1
+src/test/fftest2
 src/test/Makefile
 src/test/Makefile.in
 src/util/.deps/

@@ -41,4 +41,6 @@ extern int my_rbuf_put_avail(my_rbuf_t *rbuf);
 extern int my_rbuf_get(my_rbuf_t *rbuf, char *data, int size);
 extern int my_rbuf_put(my_rbuf_t *rbuf, char *data, int size);
 
+extern int my_rbuf_peek(my_rbuf_t *rbuf, char *data, int size);
+
 #endif /* __MY_UTIL_RBUF_H */

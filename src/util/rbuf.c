@@ -138,3 +138,28 @@ int my_rbuf_put(my_rbuf_t *rbuf, char *data, int size)
 
 	return size;
 }
+
+int my_rbuf_peek(my_rbuf_t *rbuf, char *data, int size)
+{
+	int avail, off;
+	
+	avail = my_rbuf_get_avail(rbuf);
+	if (!avail) {
+		return 0;
+	}
+
+	if (size > avail) {
+		size = avail;
+	}
+	avail = size;
+	off = rbuf->off_get + size;
+	if (off > rbuf->size) {
+		off %= rbuf->size;
+		memcpy(data + rbuf->size - rbuf->off_get, rbuf->data, off);
+		avail -= off;
+	}
+	memcpy(data, rbuf->data + rbuf->off_get, avail);
+
+	return size;
+}
+

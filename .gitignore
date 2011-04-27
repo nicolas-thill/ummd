@@ -69,7 +69,7 @@ src/test/.libs/
 src/test/*.la
 src/test/*.lo
 src/test/*.o
-src/test/fftest
+src/test/fftest1
 src/test/Makefile
 src/test/Makefile.in
 src/util/.deps/

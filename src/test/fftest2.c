@@ -49,6 +49,7 @@ struct my_source_s
 	AVInputFormat  *ff_if;
 	AVFormatContext *ff_fc;
 	AVCodecContext *ff_cc;
+	int stream_index;
 	int64_t pos;
 };
 
@@ -79,8 +80,6 @@ static my_target_t my_target;
 
 #define MY_RBLOCK_SIZE 1024
 #define MY_WBLOCK_SIZE 1024
-
-int source_stream_index;
 
 static char *my_get_seek_str(int whence)
 {
@@ -209,19 +208,19 @@ static int my_source_init(void)
 	}
 
 	my_log(MY_LOG_NOTICE, "source: finding audio stream");
-	source_stream_index = -1;
+	my_source.stream_index = -1;
 	for (i = 0; i < my_source.ff_fc->nb_streams; i++) {
-		if (my_source.ff_fc->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO && source_stream_index < 0) {
-			source_stream_index = i;
+		if (my_source.ff_fc->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO && my_source.stream_index < 0) {
+			my_source.stream_index = i;
 			break;
 		}
 	}
-	if (source_stream_index < 0) {
+	if (my_source.stream_index < 0) {
 		my_log(MY_LOG_ERROR, "source: finding audio stream");
 		goto _MY_ERR_finding_audio_stream;
 	}
 
-	my_source.ff_cc = my_source.ff_fc->streams[source_stream_index]->codec;
+	my_source.ff_cc = my_source.ff_fc->streams[my_source.stream_index]->codec;
 
 	my_log(MY_LOG_NOTICE, "source: finding audio codec");
 	av_dec = avcodec_find_decoder(my_source.ff_cc->codec_id);
@@ -501,7 +500,7 @@ static int my_loop(void)
 				continue;
 			}
 			if (av_read_frame(my_source.ff_fc, &av_pk) == 0) {
-				if (av_pk.stream_index == source_stream_index) {
+				if (av_pk.stream_index == my_source.stream_index) {
 					my_log(MY_LOG_NOTICE, "source: read an audio frame, pts: %lld, dts: %lld, size: %d, duration: %d, pos: %lld", av_pk.pts, av_pk.dts, av_pk.size, av_pk.duration, av_pk.pos);
 					target_size = sizeof(buf);
 					source_size = avcodec_decode_audio2(my_source.ff_cc, (int16_t *)buf, &target_size, av_pk.data, av_pk.size);

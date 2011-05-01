@@ -168,7 +168,7 @@ static int my_source_init(void)
 
 #define MY_PROBE_MIN  AVCODEC_MAX_AUDIO_FRAME_SIZE * 2
 	n = my_rbuf_get_avail(my_source.rb);
-	if (n < MY_PROBE_MIN) {
+	if (!my_source.eof && n < MY_PROBE_MIN) {
 		return -1;
 	}
 

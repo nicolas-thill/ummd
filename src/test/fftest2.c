@@ -506,6 +506,9 @@ static int my_loop(void)
 		}
 
 		if (init_done) {
+			if (!my_source.eof && my_rbuf_get_avail(my_source.rb) < AVCODEC_MAX_AUDIO_FRAME_SIZE) {
+				continue;
+			}
 			if (my_rbuf_put_avail(my_target.rb) < AVCODEC_MAX_AUDIO_FRAME_SIZE) {
 				continue;
 			}

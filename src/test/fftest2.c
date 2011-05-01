@@ -199,14 +199,14 @@ static int my_source_init(void)
 	my_log(MY_LOG_NOTICE, "source: opening stream");
 	rc = av_open_input_stream(&(my_source.ff_fc), my_source.ff_io, "", av_if, &av_fp);
 	if( rc < 0 ) {
-		my_log(MY_LOG_ERROR, "source: opening stream");
+		my_log(MY_LOG_ERROR, "source: opening stream (rc = %d)", rc);
 		goto _MY_ERR_av_open_input_stream;
 	}
 
 	my_log(MY_LOG_NOTICE, "source: finding stream info");
 	rc = av_find_stream_info(my_source.ff_fc);
 	if( rc < 0 ) {
-		my_log(MY_LOG_ERROR, "source: finding stream info");
+		my_log(MY_LOG_ERROR, "source: finding stream info (rc = %d)", rc);
 		goto _MY_ERR_av_find_stream_info;
 	}
 
@@ -235,8 +235,9 @@ static int my_source_init(void)
 	my_log(MY_LOG_NOTICE, "source: audio stream found, codec: %s, channels: %d, sample-rate: %d Hz", av_dec->name, my_source.ff_cc->channels, my_source.ff_cc->sample_rate);
 
 	my_log(MY_LOG_NOTICE, "source: opening audio codec");
-	if (avcodec_open(my_source.ff_cc, av_dec) < 0) {
-		my_log(MY_LOG_ERROR, "source: opening audio codec");
+	rc = avcodec_open(my_source.ff_cc, av_dec);
+	if (rc < 0) {
+		my_log(MY_LOG_ERROR, "source: opening audio codec (rc = %d)", rc);
 		goto _MY_ERR_avcodec_open;
 	}
 

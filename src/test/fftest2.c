@@ -49,6 +49,7 @@ struct my_source_s
 	AVFormatContext *ff_fc;
 	AVCodecContext *ff_cc;
 	int stream_index;
+	int eof;
 	int64_t pos;
 };
 
@@ -165,7 +166,7 @@ static int my_source_init(void)
 	AVProbeData av_pd;
 	int i, n, rc;
 
-#define MY_PROBE_MIN  AVCODEC_MAX_AUDIO_FRAME_SIZE * 4
+#define MY_PROBE_MIN  AVCODEC_MAX_AUDIO_FRAME_SIZE * 2
 	n = my_rbuf_get_avail(my_source.rb);
 	if (n < MY_PROBE_MIN) {
 		return -1;
@@ -467,6 +468,8 @@ static int my_loop(void)
 						my_log(MY_LOG_ERROR, "read '%d: %s'", errno, strerror(errno));
 						goto _MY_ERR_read;
 					}
+				} else if (n == 0) {
+					my_source.eof = 1;
 				} else {
 					n = my_rbuf_put(my_source.rb, buf, n);
 /*

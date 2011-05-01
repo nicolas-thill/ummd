@@ -38,51 +38,6 @@ static AVOutputFormat *my_guess_format(const char *short_name, const char *filen
 #endif
 }
 
-typedef struct my_packet_s my_packet_t;
-struct my_packet_s {
-	int size;
-	u_int8_t data[0];
-};
-
-int my_packet_calc_size(int size)
-{
-	return sizeof(my_packet_t) + size - 1;
-}
-
-my_packet_t *my_packet_create(int size)
-{
-	my_packet_t *packet;
-
-	packet = (my_packet_t *)my_mem_alloc(my_packet_calc_size(size));
-	if (packet == NULL) {
-		goto _MY_ERR_mem_alloc;
-	}
-
-	packet->size = size;
-
-	return packet;
-
-
-_MY_ERR_mem_alloc:
-	return NULL;
-}
-
-void my_packet_destroy(my_packet_t *packet)
-{
-	my_mem_free(packet);
-}
-
-int my_packet_squeeze(my_packet_t *packet, int size)
-{
-	u_int8_t *p = packet->data + size;
-	int n = packet->size - size;
-
-	memmove(packet->data, p, n);
-	packet->size = n;
-
-	return n;
-}
-
 typedef struct my_source_s my_source_t;
 struct my_source_s
 {

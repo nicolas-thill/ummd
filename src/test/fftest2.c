@@ -177,6 +177,8 @@ static int my_source_init(void)
 	av_pd.buf_size = n;
 	av_pd.filename = NULL;
 
+	memset(&av_fp, 0, sizeof(av_fp));
+
 	my_log(MY_LOG_NOTICE, "source: probing format");
 	av_if = av_probe_input_format(&av_pd, 1);
 	if (av_if == NULL) {

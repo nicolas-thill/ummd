@@ -130,16 +130,27 @@ static int my_source_open(char *name)
 		goto _MY_ERR_open;
 	}
 
+	my_log(MY_LOG_NOTICE, "source: creating ring buffer");
 	my_source.rb = my_rbuf_create(MY_SOURCE_SIZE);
 	if (my_source.rb == NULL) {
 		my_log(MY_LOG_ERROR, "source: creating ring buffer");
 		goto _MY_ERR_rbuf_create;
 	}
 
+	my_log(MY_LOG_NOTICE, "source: creating I/O buffer");
+	my_source.ff_io = av_alloc_put_byte(my_source.io_buf, sizeof(my_source.io_buf), 0, &my_source, my_source_read, NULL, my_source_seek);
+	if (my_source.ff_io == NULL) {
+		my_log(MY_LOG_ERROR, "source: creating I/O buffer");
+		goto _MY_ERR_av_alloc_put_byte;
+	}
+	my_source.ff_io->is_streamed = 1;
+
 	my_source.name = name;
 
 	return 0;
 
+
+_MY_ERR_av_alloc_put_byte:
 _MY_ERR_rbuf_create:
 	close(my_source.fd);
 _MY_ERR_open:
@@ -180,14 +191,6 @@ static int my_source_init(void)
 
 	my_log(MY_LOG_NOTICE, "source: format found: %s", av_if->name);
 
-	my_log(MY_LOG_NOTICE, "source: creating I/O buffer");
-	my_source.ff_io = av_alloc_put_byte(my_source.io_buf, sizeof(my_source.io_buf), 0, &my_source, my_source_read, NULL, my_source_seek);
-	if (my_source.ff_io == NULL) {
-		my_log(MY_LOG_ERROR, "source: creating I/O buffer");
-		goto _MY_ERR_av_alloc_put_byte;
-	}
-
-	my_source.ff_io->is_streamed = 1;
 	my_source.pos = 0;
 
 	my_log(MY_LOG_NOTICE, "source: opening stream");
@@ -241,7 +244,6 @@ _MY_ERR_avcodec_find_decoder:
 _MY_ERR_finding_audio_stream:
 _MY_ERR_av_find_stream_info:
 _MY_ERR_av_open_input_stream:
-_MY_ERR_av_alloc_put_byte:
 _MY_ERR_av_probe_input_format:
 	return -1;
 }
@@ -288,17 +290,28 @@ static int my_target_open(char *name)
 		my_log(MY_LOG_ERROR, "target: opening '%s'", name);
 		goto _MY_ERR_open;
 	}
+
+	my_log(MY_LOG_NOTICE, "target: creating ring buffer");
 	my_target.rb = my_rbuf_create(MY_TARGET_SIZE);
 	if (my_target.rb == NULL) {
 		my_log(MY_LOG_ERROR, "target: creating ring buffer");
 		goto _MY_ERR_rbuf_create;
 	}
 
+	my_log(MY_LOG_NOTICE, "target: creating I/O buffer");
+	my_target.ff_io = av_alloc_put_byte(my_target.io_buf, sizeof(my_target.io_buf), 1, &my_target, NULL, my_target_write, my_target_seek);
+	if (my_target.ff_io == NULL) {
+		my_log(MY_LOG_ERROR, "target: creating I/O buffer");
+		goto _MY_ERR_av_alloc_put_byte;
+	}
+	my_target.ff_io->is_streamed = 1;
+
 	my_target.name = name;
 
 	return 0;
 
 
+_MY_ERR_av_alloc_put_byte:
 _MY_ERR_rbuf_create:
 	close(my_target.fd);
 _MY_ERR_open:
@@ -344,14 +357,6 @@ static int my_target_init(void)
 
 	my_log(MY_LOG_NOTICE, "target: format found: %s", av_of->name);
 
-	my_log(MY_LOG_NOTICE, "target: creating I/O buffer");
-	my_target.ff_io = av_alloc_put_byte(my_target.io_buf, sizeof(my_target.io_buf), 1, &my_target, NULL, my_target_write, my_target_seek);
-	if (my_target.ff_io == NULL) {
-		my_log(MY_LOG_ERROR, "target: creating I/O buffer");
-		goto _MY_ERR_av_alloc_put_byte;
-	}
-
-	my_target.ff_io->is_streamed = 1;
 	my_target.pos = 0;
 
 	my_log(MY_LOG_NOTICE, "target: creating format context");
@@ -405,7 +410,6 @@ _MY_ERR_avcodec_find_decoder:
 _MY_ERR_av_new_stream:
 _MY_ERR_av_set_parameters:
 _MY_ERR_avformat_alloc_context:
-_MY_ERR_av_alloc_put_byte:
 _MY_ERR_av_guess_format:
 _MY_ERR_open:
 	return -1;

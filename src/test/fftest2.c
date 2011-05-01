@@ -46,7 +46,6 @@ struct my_source_s
 	my_rbuf_t *rb;
 	uint8_t io_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
 	ByteIOContext *ff_io;
-	AVInputFormat  *ff_if;
 	AVFormatContext *ff_fc;
 	AVCodecContext *ff_cc;
 	int stream_index;
@@ -61,7 +60,6 @@ struct my_target_s
 	my_rbuf_t *rb;
 	uint8_t io_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
 	ByteIOContext *ff_io;
-	AVOutputFormat  *ff_of;
 	AVFormatContext *ff_fc;
 	AVCodecContext *ff_cc;
 	int64_t pos;
@@ -179,7 +177,6 @@ static int my_source_init(void)
 		my_log(MY_LOG_ERROR, "source: probing format");
 		goto _MY_ERR_av_probe_input_format;
 	}
-	my_source.ff_if = av_if;
 
 	my_log(MY_LOG_NOTICE, "source: format found: %s", av_if->name);
 
@@ -194,7 +191,7 @@ static int my_source_init(void)
 	my_source.pos = 0;
 
 	my_log(MY_LOG_NOTICE, "source: opening stream");
-	rc = av_open_input_stream(&(my_source.ff_fc), my_source.ff_io, "", my_source.ff_if, &av_fp);
+	rc = av_open_input_stream(&(my_source.ff_fc), my_source.ff_io, "", av_if, &av_fp);
 	if( rc < 0 ) {
 		my_log(MY_LOG_ERROR, "source: opening stream");
 		goto _MY_ERR_av_open_input_stream;
@@ -344,7 +341,6 @@ static int my_target_init(void)
 		my_log(MY_LOG_ERROR, "target: guessing format");
 		goto _MY_ERR_av_guess_format;
 	}
-	my_target.ff_of = av_of;
 
 	my_log(MY_LOG_NOTICE, "target: format found: %s", av_of->name);
 
@@ -365,7 +361,7 @@ static int my_target_init(void)
 		goto _MY_ERR_avformat_alloc_context;
 	}
 	my_target.ff_fc = av_fc;
-	my_target.ff_fc->oformat = my_target.ff_of;
+	my_target.ff_fc->oformat = av_of;
 
 	my_log(MY_LOG_NOTICE, "target: setting parameters");
 	rc = av_set_parameters(my_target.ff_fc, &av_fp);

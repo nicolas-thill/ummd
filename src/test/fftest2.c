@@ -50,7 +50,6 @@ struct my_source_s
 	AVCodecContext *ff_cc;
 	int stream_index;
 	int eof;
-	int64_t pos;
 };
 
 typedef struct my_target_s my_target_t;
@@ -63,7 +62,6 @@ struct my_target_s
 	ByteIOContext *ff_io;
 	AVFormatContext *ff_fc;
 	AVCodecContext *ff_cc;
-	int64_t pos;
 };
 
 uint8_t buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
@@ -80,46 +78,15 @@ static my_target_t my_target;
 #define MY_RBLOCK_SIZE 1024
 #define MY_WBLOCK_SIZE 1024
 
-static char *my_get_seek_str(int whence)
-{
-	switch (whence) {
-		case AVSEEK_SIZE:
-			return "AVSEEK_SIZE";
-		case SEEK_SET:
-			return "AVSEEK_SET";
-		case SEEK_CUR:
-			return "AVSEEK_CUR";
-		case SEEK_END:
-			return "AVSEEK_END";
-	}
-	return "UNKNOWN";
-}
-
 static int my_source_read(void *opaque, uint8_t *buf, int buf_size)
 {
 	int n;
 
 	n = my_rbuf_get(my_source.rb, buf, buf_size);
-	my_source.pos += n;
 
 	my_log(MY_LOG_NOTICE, "source: read(..., ..., %d) called, result = %d", buf_size, n);
 
 	return n;
-}
-
-static int64_t my_source_seek(void *opaque, int64_t offset, int whence)
-{
-	int64_t pos;
-
-	if (whence == SEEK_CUR) {
-		pos = my_source.pos;
-	} else {
-		pos = -1;
-	}
-
-	my_log(MY_LOG_NOTICE, "source: seek(..., %lld, %s) called, result = %lld", offset, my_get_seek_str(whence), pos);
-
-	return pos;
 }
 
 static int my_source_open(char *name)
@@ -139,7 +106,7 @@ static int my_source_open(char *name)
 	}
 
 	my_log(MY_LOG_NOTICE, "source: creating I/O buffer");
-	my_source.ff_io = av_alloc_put_byte(my_source.io_buf, sizeof(my_source.io_buf), 0, &my_source, my_source_read, NULL, my_source_seek);
+	my_source.ff_io = av_alloc_put_byte(my_source.io_buf, sizeof(my_source.io_buf), 0, &my_source, my_source_read, NULL, NULL);
 	if (my_source.ff_io == NULL) {
 		my_log(MY_LOG_ERROR, "source: creating I/O buffer");
 		goto _MY_ERR_av_alloc_put_byte;
@@ -197,8 +164,6 @@ static int my_source_init(void)
 	}
 
 	my_log(MY_LOG_NOTICE, "source: format found: %s", av_if->name);
-
-	my_source.pos = 0;
 
 	my_log(MY_LOG_NOTICE, "source: opening stream");
 	rc = av_open_input_stream(&(my_source.ff_fc), my_source.ff_io, "", av_if, &av_fp);
@@ -264,30 +229,8 @@ static int my_target_write(void *opaque, uint8_t *buf, int buf_size)
 	my_log(MY_LOG_NOTICE, "target: write(..., ..., %d) called", buf_size);
 
 	n = my_rbuf_put(my_target.rb, buf, buf_size);
-	my_target.pos += n;
 
 	return n;
-}
-
-static int64_t my_target_seek(void *opaque, int64_t offset, int whence)
-{
-	my_log(MY_LOG_NOTICE, "target: seek(..., %lld, %d) called", offset, whence);
-	if (whence == AVSEEK_SIZE) {
-		my_log(MY_LOG_NOTICE, "target: seek: AVSEEK_SIZE");
-		return -1;
-	}
-	if (whence == SEEK_SET) {
-		my_log(MY_LOG_NOTICE, "target: seek: AVSEEK_SET");
-	}
-	if (whence == SEEK_CUR) {
-		my_log(MY_LOG_NOTICE, "target: seek: AVSEEK_CUR");
-	}
-	if (whence == SEEK_END) {
-		my_log(MY_LOG_NOTICE, "target: seek: AVSEEK_END");
-	}
-	my_log(MY_LOG_NOTICE, "target: seek: pos=%lld", my_target.pos);
-
-	return my_target.pos;
 }
 
 static int my_target_open(char *name)
@@ -307,7 +250,7 @@ static int my_target_open(char *name)
 	}
 
 	my_log(MY_LOG_NOTICE, "target: creating I/O buffer");
-	my_target.ff_io = av_alloc_put_byte(my_target.io_buf, sizeof(my_target.io_buf), 1, &my_target, NULL, my_target_write, my_target_seek);
+	my_target.ff_io = av_alloc_put_byte(my_target.io_buf, sizeof(my_target.io_buf), 1, &my_target, NULL, my_target_write, NULL);
 	if (my_target.ff_io == NULL) {
 		my_log(MY_LOG_ERROR, "target: creating I/O buffer");
 		goto _MY_ERR_av_alloc_put_byte;
@@ -364,8 +307,6 @@ static int my_target_init(void)
 	}
 
 	my_log(MY_LOG_NOTICE, "target: format found: %s", av_of->name);
-
-	my_target.pos = 0;
 
 	my_log(MY_LOG_NOTICE, "target: creating format context");
 	av_fc = avformat_alloc_context();

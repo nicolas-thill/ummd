@@ -64,7 +64,8 @@ struct my_target_s
 	AVCodecContext *ff_cc;
 };
 
-uint8_t buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+uint8_t ibuf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+uint8_t obuf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
 
 
 static char *me;
@@ -143,9 +144,9 @@ static int my_source_init(void)
 		return -1;
 	}
 
-	n = sizeof(buf) - AVPROBE_PADDING_SIZE;
-	n = my_rbuf_peek(my_source.rb, buf, n);
-	av_pd.buf = buf;
+	n = sizeof(ibuf) - AVPROBE_PADDING_SIZE;
+	n = my_rbuf_peek(my_source.rb, ibuf, n);
+	av_pd.buf = ibuf;
 	av_pd.buf_size = n;
 	av_pd.filename = NULL;
 
@@ -377,6 +378,8 @@ static int my_loop(void)
 	struct timeval tv;
 	int n;
 	int init_done = 0;
+	ReSampleContext *resamplec = NULL;
+	int isize, osize;
 
 	running = 1;
 	while (running) {
@@ -405,7 +408,7 @@ static int my_loop(void)
 				if (n > MY_RBLOCK_SIZE) {
 					n = MY_RBLOCK_SIZE;
 				}
-				n = read(my_source.fd, buf, n);
+				n = read(my_source.fd, ibuf, n);
 /*
 				my_log(MY_LOG_NOTICE, "source: read %d bytes", n);
 */
@@ -417,7 +420,7 @@ static int my_loop(void)
 				} else if (n == 0) {
 					my_source.eof = 1;
 				} else {
-					n = my_rbuf_put(my_source.rb, buf, n);
+					n = my_rbuf_put(my_source.rb, ibuf, n);
 /*
 					my_log(MY_LOG_NOTICE, "source: put %d bytes in ring buffer", n);
 */
@@ -425,12 +428,12 @@ static int my_loop(void)
 			}
 			if (FD_ISSET(my_target.fd, &wfds)) {
 				n = MY_WBLOCK_SIZE;
-				n = my_rbuf_get(my_target.rb, buf, n);
+				n = my_rbuf_get(my_target.rb, obuf, n);
 /*
 				my_log(MY_LOG_NOTICE, "target: got %d bytes from ring buffer", n);
 */
 				if (n > 0) {
-					n = write(my_target.fd, buf, n);
+					n = write(my_target.fd, obuf, n);
 /*
 					my_log(MY_LOG_NOTICE, "target: wrote %d bytes", n);
 */
@@ -456,15 +459,24 @@ static int my_loop(void)
 			if (av_read_frame(my_source.ff_fc, &av_pk) == 0) {
 				if (av_pk.stream_index == my_source.stream_index) {
 					my_log(MY_LOG_NOTICE, "source: read frame (pts=%lld, dts=%lld, size=%d, duration=%d, pos=%lld)", av_pk.pts, av_pk.dts, av_pk.size, av_pk.duration, av_pk.pos);
-					target_size = sizeof(buf);
-					source_size = avcodec_decode_audio2(my_source.ff_cc, (int16_t *)buf, &target_size, av_pk.data, av_pk.size);
+					target_size = sizeof(ibuf);
+					source_size = avcodec_decode_audio2(my_source.ff_cc, (int16_t *)ibuf, &target_size, av_pk.data, av_pk.size);
 					av_free_packet(&av_pk);
 					if (source_size < 0) {
 						my_log(MY_LOG_ERROR, "source: decoding frame");
 					}
 					my_log(MY_LOG_NOTICE, "source: decoded frame (size in=%d, out=%d)", source_size, target_size);
-					i = my_rbuf_put(my_target.rb, buf, target_size);
-					if (i < 0) {
+					if (resamplec) {
+						source_size = target_size;
+						target_size = audio_resample(resamplec, (uint16_t *)obuf, (uint16_t *)ibuf, source_size / isize);
+						target_size *= osize;
+						my_log(MY_LOG_NOTICE, "source: resampled frame (size i=%d, o=%d)", source_size, target_size);
+					} else {
+						memcpy(obuf, ibuf, target_size);
+					}
+					source_size = target_size;
+					target_size = my_rbuf_put(my_target.rb, obuf, source_size);
+					if (target_size < 0) {
 						my_log(MY_LOG_ERROR, "target: writing frame");
 					}
 					my_log(MY_LOG_NOTICE, "target: wrote frame (size in=%d, out:%d)", i, target_size);
@@ -475,6 +487,24 @@ static int my_loop(void)
 				my_target_init();
 				init_done = 1;
 				my_log(MY_LOG_NOTICE, "init: done");
+				if (
+					(my_source.ff_cc->channels != my_target.ff_cc->channels)
+					||
+					(my_source.ff_cc->sample_fmt != my_target.ff_cc->sample_fmt)
+					||
+					(my_source.ff_cc->sample_rate != my_target.ff_cc->sample_rate)
+				) {
+					resamplec = av_audio_resample_init(
+						my_target.ff_cc->channels, my_source.ff_cc->channels,
+						my_target.ff_cc->sample_rate, my_source.ff_cc->sample_rate,
+						my_target.ff_cc->sample_fmt,  my_source.ff_cc->sample_fmt,
+						16, 10, 0, 0.8
+					);
+					isize = av_get_bits_per_sample_format(my_source.ff_cc->sample_fmt) / 8;
+					isize *= my_source.ff_cc->channels;
+					osize = av_get_bits_per_sample_format(my_target.ff_cc->sample_fmt) / 8;
+					osize *= my_target.ff_cc->channels;
+				}
 			}
 		}
 	}

@@ -278,24 +278,6 @@ static int my_target_init(void)
 	AVStream *av_st;
 	int i, rc;
 
-	i = my_source.ff_cc->channels;
-	rc = ioctl(my_target.fd, SNDCTL_DSP_CHANNELS, &i);
-	if (rc == -1) {
-		my_log(MY_LOG_ERROR, "target: setting channels for output device (%d: %s)", errno, strerror(errno));
-	}
-
-	i = my_source.ff_cc->sample_rate;
-	rc = ioctl(my_target.fd, SNDCTL_DSP_SPEED, &i);
-	if (rc == -1) {
-		my_log(MY_LOG_ERROR, "target: setting sample rate for output device (%d: %s)", errno, strerror(errno));
-	}
-
-	i = AFMT_S16_NE;
-	rc = ioctl(my_target.fd, SNDCTL_DSP_SETFMT, &i);
-	if (rc == -1) {
-		my_log(MY_LOG_ERROR, "target: setting audio format for output device (%d: %s)", errno, strerror(errno));
-	}
-
 	my_log(MY_LOG_NOTICE, "target: guessing format");
 	av_of = my_guess_format(NULL, my_source.name, NULL);
 	if (av_of == NULL) {
@@ -350,6 +332,24 @@ static int my_target_init(void)
 	if (avcodec_open(my_target.ff_cc, av_enc) < 0) {
 		my_log(MY_LOG_ERROR, "target: opening audio codec");
 		goto _MY_ERR_avcodec_open;
+	}
+
+	i = my_target.ff_cc->channels;
+	rc = ioctl(my_target.fd, SNDCTL_DSP_CHANNELS, &i);
+	if (rc == -1) {
+		my_log(MY_LOG_ERROR, "target: setting channels for output device (%d: %s)", errno, strerror(errno));
+	}
+
+	i = my_target.ff_cc->sample_rate;
+	rc = ioctl(my_target.fd, SNDCTL_DSP_SPEED, &i);
+	if (rc == -1) {
+		my_log(MY_LOG_ERROR, "target: setting sample rate for output device (%d: %s)", errno, strerror(errno));
+	}
+
+	i = AFMT_S16_NE;
+	rc = ioctl(my_target.fd, SNDCTL_DSP_SETFMT, &i);
+	if (rc == -1) {
+		my_log(MY_LOG_ERROR, "target: setting audio format for output device (%d: %s)", errno, strerror(errno));
 	}
 
 	return 0;

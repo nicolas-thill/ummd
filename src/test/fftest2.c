@@ -455,19 +455,19 @@ static int my_loop(void)
 			}
 			if (av_read_frame(my_source.ff_fc, &av_pk) == 0) {
 				if (av_pk.stream_index == my_source.stream_index) {
-					my_log(MY_LOG_NOTICE, "source: read an audio frame, pts: %lld, dts: %lld, size: %d, duration: %d, pos: %lld", av_pk.pts, av_pk.dts, av_pk.size, av_pk.duration, av_pk.pos);
+					my_log(MY_LOG_NOTICE, "source: read frame (pts=%lld, dts=%lld, size=%d, duration=%d, pos=%lld)", av_pk.pts, av_pk.dts, av_pk.size, av_pk.duration, av_pk.pos);
 					target_size = sizeof(buf);
 					source_size = avcodec_decode_audio2(my_source.ff_cc, (int16_t *)buf, &target_size, av_pk.data, av_pk.size);
 					av_free_packet(&av_pk);
 					if (source_size < 0) {
-						my_log(MY_LOG_ERROR, "source: decoding audio frame");
+						my_log(MY_LOG_ERROR, "source: decoding frame");
 					}
-					my_log(MY_LOG_NOTICE, "source: decoded an audio frame, source_size: %d, target_size: %d", source_size, target_size);
+					my_log(MY_LOG_NOTICE, "source: decoded frame (size in=%d, out=%d)", source_size, target_size);
 					i = my_rbuf_put(my_target.rb, buf, target_size);
 					if (i < 0) {
-						my_log(MY_LOG_ERROR, "target: writing audio frame");
+						my_log(MY_LOG_ERROR, "target: writing frame");
 					}
-					my_log(MY_LOG_NOTICE, "target: wrote an audio frame, size: %d, target_size: %d", i, target_size);
+					my_log(MY_LOG_NOTICE, "target: wrote frame (size in=%d, out:%d)", i, target_size);
 				}
 			}
 		} else {

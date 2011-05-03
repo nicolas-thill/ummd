@@ -135,9 +135,9 @@ static int my_source_init(void)
 
 /*
  * MP3: needs 2
- * WAV: needs 3
+ * WAV: needs 4
  */
-#define MY_PROBE_MIN  AVCODEC_MAX_AUDIO_FRAME_SIZE * 3
+#define MY_PROBE_MIN  AVCODEC_MAX_AUDIO_FRAME_SIZE * 4
 	n = my_rbuf_get_avail(my_source.rb);
 	if (!my_source.eof && n < MY_PROBE_MIN) {
 		return -1;

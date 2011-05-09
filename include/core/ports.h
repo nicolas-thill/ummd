@@ -65,6 +65,7 @@ struct my_port_impl_s {
 	my_port_close_fn_t close;
 	my_port_get_fn_t get;
 	my_port_put_fn_t put;
+	my_event_handler_t handler;
 };
 
 #define MY_PORT(p) ((my_port_t *)(p))

@@ -34,7 +34,7 @@ static AVOutputFormat *my_guess_format(const char *short_name, const char *filen
 #if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
 	return guess_format(short_name, filename, mime_type);
 #else
-	return = av_guess_format(short_name, filename, mime_type);
+	return av_guess_format(short_name, filename, mime_type);
 #endif
 }
 
@@ -313,7 +313,7 @@ static int my_target_init(void)
 		my_log(MY_LOG_ERROR, "target: creating audio stream");
 		goto _MY_ERR_av_new_stream;
 	}
-	
+
 	my_target.ff_cc = av_st->codec;
 	my_target.ff_cc->codec_id = CODEC_ID_PCM_S16LE;
 	my_target.ff_cc->codec_type = CODEC_TYPE_AUDIO;
@@ -528,7 +528,7 @@ int main(int argc, char **argv)
 	}
 
 	my_log_init(me);
-	
+
 	av_register_all();
 	avdevice_register_all();
 

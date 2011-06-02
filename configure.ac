@@ -86,8 +86,7 @@ AC_CONFIG_FILES([
 	src/core/Makefile
 	src/core/controls/Makefile
 	src/core/filters/Makefile
-	src/core/sources/Makefile
-	src/core/targets/Makefile
+	src/core/io/Makefile
 	src/test/Makefile
 	src/util/Makefile
 ])

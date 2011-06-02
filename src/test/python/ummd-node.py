@@ -1,7 +1,7 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #
-#  ummd-client.py ( Micro MultiMedia Client )
+#  ummd-node.py ( Micro MultiMedia Daemon )
 #
 #  Copyright (C) 2010 Kevin Roy <kiniou@gmail.com)
 #
@@ -24,21 +24,23 @@
 
 # <pep8 compliant>
 
-import sys, os, os.path, socket
+import sys, os, os.path
 
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 from twisted.internet import task
-from twisted.application.internet import MulticastServer
 
 from pprint import pprint, pformat
+
+import socket,IN,struct
 
 class MulticastServerUDP(DatagramProtocol):
 
     def __init__(self,x_name):
         self.name = x_name
-        self.multicastgroup = "224.0.0.1"
-        self.multicastport = 8005
+#        self.multicastgroup = "127.0.1.1"
+        self.multicastgroup = "224.3.2.1"
+        self.multicastport = 1234
         print("[ummd-node] Starting node %s" % (self.name))
 
     def startProtocol(self):
@@ -47,13 +49,17 @@ class MulticastServerUDP(DatagramProtocol):
 
     def datagramReceived(self, datagram, (host,port)):
         # The uniqueID check is to ensure we only service requests from ourselves
+        print("[ummd-node %s] Received:" % self.name + repr(datagram) + " from %s:%s" %(host,port))
         if 'Ping?' in datagram:
-            print("[ummd-node %s] Received:" % self.name + repr(datagram) + " from %s:%s" %(host,port))
             self.transport.write("Pong!! Im \"%s\"" % self.name ,(host,port))
 
 if __name__ == "__main__":
     
-    reactor.listenMulticast(8005,MulticastServerUDP(socket.gethostname()),listenMultiple=True)
+    udp_port = reactor.listenMulticast(1234,MulticastServerUDP("ummd-node1"),"192.168.2.1")
+#    pprint(dir(udp_port.socket))
+#    udp_port.socket.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, dev)
+#    dev = "tap0" + '\0'
+#   udp_port.socket.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, dev)
     reactor.run()
 
 

@@ -1,7 +1,7 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 #
-#  ummd-client.py ( Micro MultiMedia Client )
+#  ummc.py ( Micro MultiMedia Client )
 #
 #  Copyright (C) 2010 Kevin Roy <kiniou@gmail.com)
 #
@@ -26,21 +26,22 @@
 
 import sys, os, os.path
 
+import socket,IN,struct
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 from twisted.internet import task
-from twisted.application.internet import MulticastServer
 
+from pprint import pprint, pformat
 class MulticastClientUDP(DatagramProtocol):
 
     
     def startProtocol(self):
-        self.transport.joinGroup('224.0.0.1')
-        self.loop = task.LoopingCall(self.datagramSend, ("224.0.0.1",8005))
+        self.transport.joinGroup('224.3.2.1')
+        self.loop = task.LoopingCall(self.datagramSend, ("224.3.2.1",1234))
         self.loop.start(2.0,now=False)
 
     def datagramReceived(self, datagram, (host,port)):
-        if "Pong!" in datagram :
+#        if "Pong" in datagram :
             print("[ummd-client] Received:" + repr(datagram) + " from %s:%s" % (host,port))
 
     def datagramSend(self,(host,port)):
@@ -50,7 +51,11 @@ class MulticastClientUDP(DatagramProtocol):
 
 if __name__ == "__main__":
 
-    reactor.listenMulticast(8005,MulticastClientUDP(),listenMultiple=True)
+    udp_port = reactor.listenMulticast(1234,MulticastClientUDP(), "192.168.2.2")
+#    dev = "tap0" + '\0'
+#    udp_port.socket.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, dev)
     reactor.run()
+#    test = socket.inet_aton("192.168.2.250")
+#    pprint(test)
 
 

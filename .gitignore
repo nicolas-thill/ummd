@@ -50,6 +50,13 @@ src/core/filters/*.lo
 src/core/filters/*.o
 src/core/filters/Makefile
 src/core/filters/Makefile.in
+src/core/io/.deps/
+src/core/io/.libs/
+src/core/io/*.la
+src/core/io/*.lo
+src/core/io/*.o
+src/core/io/Makefile
+src/core/io/Makefile.in
 src/core/sources/.deps/
 src/core/sources/.libs/
 src/core/sources/*.la

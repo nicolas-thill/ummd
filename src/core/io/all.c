@@ -30,10 +30,16 @@
 #include "util/mem.h"
 #include "util/prop.h"
 
+static my_list_t my_controls;
 static my_list_t my_sources;
 static my_list_t my_targets;
 
-#define MY_SOURCE_REGISTER(x) { \
+#define MY_CONTROL_REGISTER(x) { \
+	extern my_port_impl_t my_control_##x; \
+	my_port_impl_register(&my_controls, &my_control_##x); \
+}
+
+	#define MY_SOURCE_REGISTER(x) { \
 	extern my_port_impl_t my_source_##x; \
 	my_port_impl_register(&my_sources, &my_source_##x); \
 }
@@ -42,6 +48,105 @@ static my_list_t my_targets;
 	extern my_port_impl_t my_target_##x; \
 	my_port_impl_register(&my_targets, &my_target_##x); \
 }
+
+
+static my_port_impl_t *my_control_impl_find(my_port_conf_t *conf)
+{
+	my_port_impl_t *impl;
+	char *impl_name;
+
+	impl_name = my_prop_lookup(conf->properties, "type");
+	if (!impl_name) {
+		impl_name = "fifo";
+	}
+
+	impl = my_port_impl_lookup(&my_controls, impl_name);
+	if (!impl) {
+		my_log(MY_LOG_ERROR, "core/%s: unknown type '%s'", conf->name, impl_name);
+	}
+
+	return impl;
+}
+
+static int my_control_create_fn(void *data, void *user, int flags)
+{
+	my_core_t *core = MY_CORE(user);
+	my_port_t *port;
+	my_port_conf_t *conf = MY_PORT_CONF(data);
+	my_port_impl_t *impl;
+
+	impl = my_control_impl_find(conf);
+	if (!impl) {
+		return 0;
+	}
+
+	port = my_port_create(core, conf, impl);
+	if (port) {
+		my_list_enqueue(core->controls, port);
+	}
+
+	return 0;
+}
+
+int my_control_create_all(my_core_t *core, my_conf_t *conf)
+{
+	MY_DEBUG("core/controls: creating all");
+	return my_list_iter(conf->controls, my_control_create_fn, core);
+}
+
+int my_control_destroy_all(my_core_t *core)
+{
+	MY_DEBUG("core/controls: destroying all");
+	return my_port_destroy_all(core->controls);
+}
+
+int my_control_open_all(my_core_t *core)
+{
+	MY_DEBUG("core/controls: opening all");
+	return my_port_open_all(core->controls);
+}
+
+int my_control_close_all(my_core_t *core)
+{
+	MY_DEBUG("core/controls: closing all");
+	return my_port_close_all(core->controls);
+}
+
+void my_control_register_all(void)
+{
+	MY_CONTROL_REGISTER(fifo);
+/*
+	MY_CONTROL_REGISTER(osc);
+	MY_CONTROL_REGISTER(http);
+*/
+	MY_CONTROL_REGISTER(sock);
+}
+
+#ifdef MY_DEBUGGING
+
+static int my_control_dump_fn(void *data, void *user, int flags)
+{
+	my_port_impl_t *impl = MY_PORT_IMPL(data);
+
+	MY_DEBUG("\t{");
+	MY_DEBUG("\t\tname=\"%s\";", impl->name);
+	MY_DEBUG("\t\tdescription=\"%s\";", impl->desc);
+	MY_DEBUG("\t}%s", flags & MY_LIST_ITER_FLAG_LAST ? "" : ",");
+
+	return 0;
+}
+
+
+void my_control_dump_all(void)
+{
+	MY_DEBUG("# registered control interfaces");
+	MY_DEBUG("controls = (");
+	my_list_iter(&my_controls, my_control_dump_fn, NULL);
+	MY_DEBUG(");");
+
+}
+
+#endif /* MY_DEBUGGING */
 
 
 static my_port_impl_t *my_source_impl_find(my_port_conf_t *conf)

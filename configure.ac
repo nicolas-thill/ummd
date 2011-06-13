@@ -73,7 +73,10 @@ PKG_CHECK_MODULES(LIBAVUTIL, libavutil >= 49)
 
 PKG_CHECK_MODULES(LIBCONFIG, libconfig >= 1.0)
 
-PKG_CHECK_MODULES(LIBLO, liblo >= 0.26)
+PKG_CHECK_MODULES(LIBLO, liblo >= 0.26, [my_enable_osc='yes'], [my_enable_osc='no'])
+if test "x$my_enable_osc" = "xyes"; then
+	AC_DEFINE([HAVE_OSC], [1], [ Define to 1 if OSC support is enabled. ])
+fi
 
 PKG_CHECK_MODULES(LIBMPG123, libmpg123 >= 1.12)
 
@@ -95,6 +98,7 @@ AC_SUBST(HAVE_OSS)
 AC_SUBST(OSS_LIBS)
 AC_SUBST(OSS_LDFLAGS)
 AC_SUBST(OSS_CFLAGS)
+AM_CONDITIONAL( [HAVE_OSC], [test "x$my_enable_osc" = "xyes"] )
 AM_CONDITIONAL( [HAVE_OSS], [test "x$my_enable_oss" = "xyes"] )
 
 AC_SUBST(MY_DEBUGGING)

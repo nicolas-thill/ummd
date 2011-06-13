@@ -15,6 +15,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if OSC support is enabled. */
+#undef HAVE_OSC
+
 /* Define to 1 if OSS support is enabled. */
 #undef HAVE_OSS
 

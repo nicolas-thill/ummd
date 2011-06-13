@@ -147,7 +147,7 @@ static int my_io_file_get(my_port_t *port, void *buf, int len)
 	}
 
 out:
-	MY_DEBUG("core/%s: read %d bytes from file '%s'", port->conf->name, n, MY_FILE(port)->path);
+	MY_DEBUG("core/%s: read %d bytes from file '%s'", port->conf->name, ret, MY_FILE(port)->path);
 	return ret;
 }
 
@@ -166,7 +166,7 @@ static int my_io_file_put(my_port_t *port, void *buf, int len)
 		goto out;
 	}
 
-	MY_DEBUG("core/%s: wrote %d bytes to file '%s'", port->conf->name, n, MY_FILE(port)->path);
+	MY_DEBUG("core/%s: wrote %d bytes to file '%s'", port->conf->name, ret, MY_FILE(port)->path);
 
 out:
 	return ret;
